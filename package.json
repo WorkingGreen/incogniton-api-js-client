@@ -1,0 +1,62 @@
+{
+  "name": "incogniton",
+  "version": "1.0.0",
+  "description": "TypeScript client library for the Incogniton API with browser automation capabilities",
+  "author": "Yusuf Abdulhafeez @ Incogniton",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint"
+  },
+  "keywords": [
+    "incogniton",
+    "browser",
+    "automation",
+    "api",
+    "client",
+    "typescript",
+    "puppeteer",
+    "selenium"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.8.4",
+    "puppeteer-core": "^22.0.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.24",
+    "@types/puppeteer-core": "^7.0.4",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.2.5",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayveno/incogniton-js-client.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hayveno/incogniton-workspace/issues"
+  },
+  "homepage": "https://github.com/hayveno/incogniton-workspace#readme"
+}

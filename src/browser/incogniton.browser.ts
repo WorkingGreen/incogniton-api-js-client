@@ -49,7 +49,7 @@ export class IncognitonBrowser {
   }
 
   /**
-   * Starts a new browser instance with the specified configuration
+   * Starts a new Incogniton browser instance with the specified configuration
    * @returns A connected Puppeteer browser instance
    * @throws Error if browser launch fails
    */
@@ -119,6 +119,27 @@ export class IncognitonBrowser {
       logger.error('IPHey test failed:', error);
       if (error instanceof Error) {
         throw new Error(`Fingerprinting test failed: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Closes all Incogniton browser instances
+   * @param browsers Array of Puppeteer browser instances to close
+   */
+  async closeAll(browsers: Browser[]): Promise<void> {
+    try {
+      logger.info(`Closing ${browsers.length} browser instances...`);
+
+      // Close all browser instances
+      await Promise.all(browsers.map(browser => this.close(browser)));
+
+      logger.info('All browser instances closed successfully');
+    } catch (error) {
+      logger.error('Failed to close browser instances:', error);
+      if (error instanceof Error) {
+        throw new Error(`Failed to close browser instances: ${error.message}`);
       }
       throw error;
     }

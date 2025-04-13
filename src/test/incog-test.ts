@@ -7,7 +7,7 @@ import { CreateBrowserProfileRequest } from '../models/common.types';
 const profileData: CreateBrowserProfileRequest = {
   profileData: {
     general_profile_information: {
-      profile_name: 'Test Profile',
+      profile_name: 'John doe',
       profile_notes: 'Test profile created via API',
       profile_group: 'Test Group',
       profile_last_edited: new Date().toISOString(),
@@ -70,7 +70,7 @@ async function testAddProfile() {
 async function testStartBrowser() {
   try {
     const incognitonBrowser = new IncognitonBrowser({
-      profileId: 'd0b4880e-6662-4b36-8f15-90b5744c7e85',
+      profileId: 'b2f707c5-924e-428e-8bf9-502781074c6e',
       headless: false,
     });
 
@@ -97,7 +97,7 @@ async function testStartBrowser() {
 async function testFingerprinting(browser: any) {
   try {
     const incognitonBrowser = new IncognitonBrowser({
-      profileId: 'd0b4880e-6662-4b36-8f15-90b5744c7e85',
+      profileId: 'b2f707c5-924e-428e-8bf9-502781074c6e',
       headless: false,
       launchTimeout: 60000, // Increase timeout to 60 seconds
     });
@@ -116,7 +116,8 @@ async function runTests() {
   try {
     // Test browser start
     logger.info('Testing browser start...');
-    browser = await testStartBrowser();
+    // browser = await testStartBrowser();
+    browser = await testAddProfile();
     logger.info('Browser start test completed successfully!');
   } catch (error) {
     logger.error('Test suite failed:', error);
@@ -127,16 +128,6 @@ async function runTests() {
       });
     }
     process.exit(1);
-  } finally {
-    // Always try to close the browser
-    if (browser) {
-      try {
-        await browser.close();
-        logger.info('Browser closed successfully');
-      } catch (closeError) {
-        logger.error('Failed to close browser:', closeError);
-      }
-    }
   }
 }
 

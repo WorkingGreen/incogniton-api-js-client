@@ -175,7 +175,32 @@ export interface CreateBrowserProfileRequest {
  * Request type for updating an existing browser profile.
  * All fields are optional.
  */
-export interface UpdateBrowserProfileRequest extends Partial<CreateBrowserProfileRequest> {}
+/**
+ * Request type for updating an existing browser profile.
+ * Allows partial updates of profile settings where only changed fields need to be provided.
+ */
+export interface UpdateBrowserProfileRequest {
+  /** Optional profile configuration data containing settings to update */
+  profileData?: {
+    /** Optional general profile information updates */
+    general_profile_information?: Partial<GeneralProfileInformation>;
+
+    /** Optional proxy configuration updates */
+    Proxy?: Partial<Proxy>;
+
+    /** Optional timezone configuration updates */
+    Timezone?: Partial<Timezone>;
+
+    /** Optional WebRTC configuration updates */
+    WebRTC?: Partial<WebRTC>;
+
+    /** Optional navigator configuration updates */
+    Navigator?: Partial<Navigator>;
+
+    /** Optional additional configuration updates */
+    Other?: Partial<Other>;
+  };
+}
 
 /**
  * Response type representing cookie data retrieved from the browser profile

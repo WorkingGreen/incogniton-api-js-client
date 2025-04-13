@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 
 import { APIError, HttpError, TimeoutError } from './errors';
@@ -26,6 +25,7 @@ export type RequestData<T extends object> = T | string;
 
 export class RequestWrapper<T extends object> {
   private asyncActions: Action[] = [];
+  private useFormUrlEncoded = false;
 
   constructor(
     protected instance: AxiosInstance,
@@ -37,7 +37,7 @@ export class RequestWrapper<T extends object> {
 
   /**
    * Adds asynchronous code to be run just before making a request. This mainly
-   * helps to keep the wrapper API consisten by not doing anything async till the requeust
+   * helps to keep the wrapper API consistent by not doing anything async till the request
    * is made
    * @param action asynchronous action.
    */
@@ -74,40 +74,84 @@ export class RequestWrapper<T extends object> {
       'Content-Type': t,
     });
 
+    // Set the form-urlencoded flag when that content type is selected
+    this.useFormUrlEncoded = t === 'application/x-www-form-urlencoded';
+
     return this;
+  }
+
+  /**
+   * Helper method to convert nested objects in request data to stringified JSON
+   * before form URL encoding. This is useful for endpoints that expect stringified
+   * JSON values within form URL encoded data.
+   */
+  toFormUrlEncoded() {
+    this.useFormUrlEncoded = true;
+
+    // If the data is an object, stringify the entire object
+    if (this.request.data && typeof this.request.data === 'object') {
+      const processedData: Record<string, string> = {};
+
+      // Stringify the entire object as a single value
+      processedData.profileData = JSON.stringify(this.request.data);
+
+      this.request.data = <RequestData<T>>processedData;
+    }
+
+    return this.type('application/x-www-form-urlencoded');
+  }
+
+  /**
+   * Convert JSON object to form-urlencoded format without external dependencies
+   * @param obj the object to convert
+   * @param prefix optional key prefix for nested objects
+   */
+  private jsonToFormUrlEncoded(obj: any, prefix?: string): string {
+    const parts: string[] = [];
+
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const value = obj[key];
+        const formKey = prefix ? `${prefix}[${key}]` : key;
+
+        if (value === null || value === undefined) {
+          continue;
+        } else if (
+          typeof value === 'object' &&
+          !(value instanceof Date) &&
+          !(typeof File !== 'undefined' && value instanceof File)
+        ) {
+          // Handle nested objects recursively
+          const nestedStr = this.jsonToFormUrlEncoded(value, formKey);
+          if (nestedStr) {
+            parts.push(nestedStr);
+          }
+        } else {
+          // Handle primitive values and special objects like Date
+          let formValue = value;
+          if (value instanceof Date) {
+            formValue = value.toISOString();
+          }
+          parts.push(`${encodeURIComponent(formKey)}=${encodeURIComponent(String(formValue))}`);
+        }
+      }
+    }
+
+    return parts.join('&');
   }
 
   /**
    * Set multiple header values at once
    * @param headers header key value pairs
    */
+  set(headers: object): this;
   /**
-   * Set multiple headers at once
-   * @param headers Header key-value pairs
+   * Set single header value at once
+   * @param key header
+   * @param value value of header
    */
-  set(headers: Record<string, string>): this;
-  /**
-   * Set a single header value
-   * @param key Header name
-   * @param value Header value
-   */
-  set(
-    key:
-      | 'Accept'
-      | 'Content-Type'
-      | 'Authorization'
-      | 'X-Custom-Header'
-      | 'X-Request-ID'
-      | 'X-Origin-Service',
-    value:
-      | 'application/json'
-      | 'application/x-www-form-urlencoded'
-      | 'text/plain'
-      | 'text/html'
-      | 'application/xml'
-      | 'Bearer'
-  ): this;
-  set(key: Record<string, string> | string, value?: string) {
+  set(key: string, value: string): this;
+  set(key: string | object, value?: string) {
     let headers = {};
     if (typeof key === 'string') {
       (headers as Record<string, string>)[key] = value as string;
@@ -145,8 +189,13 @@ export class RequestWrapper<T extends object> {
    * Runs the API request and handles errors.
    * @param timeout timeout for request in seconds
    */
-  async do<T = any>(timeout = 15): Promise<T> {
+  async do<R = any>(timeout = 10): Promise<R> {
     await Promise.all(this.asyncActions.map(action => action()));
+
+    // Convert data to form-urlencoded if needed
+    if (this.useFormUrlEncoded && this.request.data && typeof this.request.data === 'object') {
+      this.request.data = this.jsonToFormUrlEncoded(this.request.data);
+    }
 
     try {
       const response = await this.instance({

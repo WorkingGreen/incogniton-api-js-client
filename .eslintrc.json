@@ -27,8 +27,7 @@
     "@typescript-eslint/no-unsafe-member-access": "error",
     "no-console": "warn",
     "import/no-unresolved": "error",
-    "import/named": "error",
-    "import/extensions": ["error", "never", { "json": "always" }]
+    "import/named": "error"
   },
   "settings": {
     "import/resolver": {

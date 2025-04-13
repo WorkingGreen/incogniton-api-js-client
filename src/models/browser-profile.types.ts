@@ -119,6 +119,11 @@ export interface CreateBrowserProfileRequest {
 }
 
 /**
+ * Profile status as returned by the API
+ */
+export type ProfileStatus = 'ready' | 'launching' | 'launched' | 'syncing' | 'synced';
+
+/**
  * Request payload for updating an existing browser profile.
  */
 export interface UpdateBrowserProfileRequest {

@@ -8,8 +8,10 @@ import {
   GetCookieResponse,
   AddCookieRequest,
   ProfileId,
+  Proxy,
 } from '../models/common.types';
 import { defaults } from '../config/defaults';
+import { ProfileStatus } from '../models/browser-profile.types';
 
 export class IncognitonClient {
   private readonly httpAgent: HttpAgentBuilder;
@@ -52,13 +54,11 @@ export class IncognitonClient {
      * @returns Promise<ApiResponse<{ profileData: BrowserProfile; status: 'ok' }>> - Created profile details
      */
     add: async (
-      data: CreateBrowserProfileRequest
+      // Add urlencoded converting logic
+
+      profileData: CreateBrowserProfileRequest
     ): Promise<ApiResponse<{ profileData: BrowserProfile; status: 'ok' }>> => {
-      return this.httpAgent
-        .post('/profile/add')
-        .set('Content-Type', 'application/json')
-        .setBody(data)
-        .do();
+      return this.httpAgent.post('/profile/add').setBody(profileData).toFormUrlEncoded().do();
     },
 
     /**
@@ -80,16 +80,18 @@ export class IncognitonClient {
     },
 
     /**
-     * Deletes a browser profile by its ID.
-     * @route GET /profile/delete/{profile_id}
-     * @param {ProfileId} id - Unique identifier of the profile to delete
-     * @returns Promise<ApiResponse<{ message: string; status: 'ok' }>> - Deletion confirmation
+     * @helper Helper method to update a browser profile's proxy configuration.
+     * @param {ProfileId} id - The ID of the profile to update.
+     * @param {Proxy} proxy - The new proxy configuration.
+     * @returns Promise<ApiResponse<{ message: string; status: 'ok' }>> - Update confirmation.
      */
-    delete: async (id: ProfileId): Promise<ApiResponse<{ message: string; status: 'ok' }>> => {
-      return this.httpAgent
-        .get(`/profile/delete/${id}`)
-        .set('Content-Type', 'application/json')
-        .do();
+    switchProxy: async (
+      id: ProfileId,
+      proxy: Proxy
+    ): Promise<ApiResponse<{ message: string; status: 'ok' }>> => {
+      return this.profile.update(id, {
+        profileData: { Proxy: proxy },
+      });
     },
 
     /**
@@ -121,6 +123,19 @@ export class IncognitonClient {
     },
 
     /**
+     * Retrieves the current status of a browser profile.
+     * @route GET /profile/status/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the profile
+     * @returns Promise<ApiResponse<{ status: ProfileStatus }>> - Profile status information
+     */
+    getStatus: async (id: ProfileId): Promise<ApiResponse<{ status: ProfileStatus }>> => {
+      return this.httpAgent
+        .get(`/profile/status/${id}`)
+        .set('Content-Type', 'application/json')
+        .do();
+    },
+
+    /**
      * Forces a browser profile to launch in cloud mode.
      * @route GET /profile/launch/{profile_id}/force/cloud
      * @param {ProfileId} id - Unique identifier of the profile to launch in cloud
@@ -131,6 +146,29 @@ export class IncognitonClient {
     ): Promise<ApiResponse<{ message: string; status: 'ok' }>> => {
       return this.httpAgent
         .get(`/profile/launch/${id}/force/cloud`)
+        .set('Content-Type', 'application/json')
+        .do();
+    },
+
+    /**
+     * Stops a running browser profile.
+     * @route GET /profile/stop/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the profile to stop
+     * @returns Promise<ApiResponse<{ message: string; status: 'ok' }>> - Stop confirmation
+     */
+    stop: async (id: ProfileId): Promise<ApiResponse<{ message: string; status: 'ok' }>> => {
+      return this.httpAgent.get(`/profile/stop/${id}`).set('Content-Type', 'application/json').do();
+    },
+
+    /**
+     * Deletes a browser profile by its ID.
+     * @route GET /profile/delete/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the profile to delete
+     * @returns Promise<ApiResponse<{ message: string; status: 'ok' }>> - Deletion confirmation
+     */
+    delete: async (id: ProfileId): Promise<ApiResponse<{ message: string; status: 'ok' }>> => {
+      return this.httpAgent
+        .get(`/profile/delete/${id}`)
         .set('Content-Type', 'application/json')
         .do();
     },

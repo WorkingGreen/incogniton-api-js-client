@@ -48,6 +48,8 @@ export class IncognitonBrowser {
     this.httpAgent = InitHttpAgent('incogniton-browser', `http://localhost:${this.config.port}`);
   }
 
+  //TODO: ADD QUICKSTART WITH AUTO PROFILE CREATION
+
   /**
    * Starts a new Incogniton browser instance with the specified configuration
    * @returns A connected Puppeteer browser instance

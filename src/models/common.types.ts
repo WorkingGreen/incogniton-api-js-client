@@ -128,7 +128,7 @@ export interface Other {
  * This interface matches the OpenAPI specification exactly.
  */
 export interface BrowserProfile {
-  /** General profile information including name, notes, and browser settings */
+  /** General profile information including name, id, notes, and browser settings */
   general_profile_information: GeneralProfileInformation;
 
   /** Timezone configuration settings */
@@ -151,7 +151,7 @@ export interface BrowserProfile {
 export interface CreateBrowserProfileRequest {
   /** Profile configuration data containing all settings for the browser profile */
   profileData: {
-    /** General profile information including name, notes, and browser settings */
+    /** General profile information including name, id, notes, and browser settings */
     general_profile_information: GeneralProfileInformation;
 
     /** Optional proxy configuration */

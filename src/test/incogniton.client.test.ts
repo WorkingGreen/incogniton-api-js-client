@@ -1,13 +1,15 @@
-import { jest } from '@jest/globals';
-import { IncognitonClient } from '../api/incogniton.client';
-import { BrowserProfile } from '../models/common.types';
-import { logger } from '../utils/logger';
+import { IncognitonClient } from '../api/incogniton.client.js';
+import { logger } from '../utils/logger.js';
 
 describe('IncognitonClient', () => {
   let client: IncognitonClient;
 
   beforeEach(() => {
     client = new IncognitonClient();
+  });
+
+  it('should create client instance', () => {
+    expect(client).toBeInstanceOf(IncognitonClient);
   });
 
   it('should fetch all profiles', async () => {

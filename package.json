@@ -1,19 +1,26 @@
 {
   "name": "incogniton",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "description": "TypeScript-supported JS client library for the Incogniton API, featuring browser automation capabilities",
   "author": "Yusuf Abdulhafeez @ Incogniton",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
     "dist",
     "README.md"
   ],
   "scripts": {
     "build": "tsc",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
+    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "lint": "eslint src --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepare": "npm run build",
@@ -21,6 +28,7 @@
   },
   "keywords": [
     "incogniton",
+    "antidetect",
     "browser",
     "automation",
     "api",
@@ -32,9 +40,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.8.4",
-    "incogniton": "^1.0.1",
-    "puppeteer-core": "^22.0.0",
-    "zod": "^3.22.4"
+    "puppeteer-core": "^22.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
@@ -56,11 +62,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rens23/incogniton-js-client.git"
+    "url": "git+https://github.com/rens23/incogniton-api-js-client.git"
   },
   "bugs": {
-    "url": "https://github.com/rens23/incogniton-workspace/issues"
+    "url": "https://github.com/rens23/incogniton-api-js-client/issues"
   },
-  "homepage": "https://github.com/rens23/incogniton-workspace#readme",
-  "type": "module"
+  "homepage": "https://github.com/rens23/incogniton-api-js-client#readme"
 }

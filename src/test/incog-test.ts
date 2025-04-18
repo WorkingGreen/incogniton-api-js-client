@@ -1,7 +1,7 @@
-import { IncognitonClient } from '../api/incogniton.client';
-import { IncognitonBrowser } from '../browser/incogniton.browser';
-import { CreateBrowserProfileRequest } from '../models/common.types';
-import { logger } from '../utils/logger';
+import { IncognitonClient } from '../api/incogniton.client.js';
+import { IncognitonBrowser } from '../browser/incogniton.browser.js';
+import type { CreateBrowserProfileRequest } from '../models/common.types.js';
+import { logger } from '../utils/logger.js';
 
 // Simple profile data for testing
 const profileData: CreateBrowserProfileRequest = {

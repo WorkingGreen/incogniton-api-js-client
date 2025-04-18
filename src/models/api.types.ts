@@ -6,8 +6,8 @@ import type {
   CreateBrowserProfileRequest as BrowserProfileRequest,
   UpdateBrowserProfileRequest as BrowserProfileUpdateRequest,
   ProfileStatus,
-} from './browser-profile.types';
-import type { BaseResponse } from './common.types';
+} from './browser-profile.types.js';
+import type { BaseResponse } from './common.types.js';
 
 export interface ApiResponse<T> extends BaseResponse {
   data: T;
@@ -80,4 +80,17 @@ export interface SwitchProxyResponse extends BaseResponse {
   data: {
     status: 'ok' | 'error';
   };
+}
+
+export interface BrowserConfig {
+  /** The profile ID to use for the browser instance */
+  profileId?: string;
+  /** Whether to launch in headless mode */
+  headless?: boolean;
+  /** Custom command-line arguments for the browser */
+  customArgs?: string;
+  /** Port number for the Incogniton instance (default: 35000) */
+  port?: number;
+  /** Time to wait for browser launch in milliseconds (default: 30000) */
+  launchTimeout?: number;
 }

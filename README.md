@@ -1,4 +1,4 @@
-# Incogniton Browser Client (JS/TS)
+# Incogniton API Client (JS/TS)
 
 A comprehensive JavaScript/TypeScript client for interacting with Incogniton's API and browser automation capabilities.
 
@@ -141,4 +141,4 @@ We welcome contributions! Please feel free to submit a Pull Request.
 
 ## Support
 
-For support, please reach out to [Incogniton support](https://incogniton.com/contact)
+For help or technical support, please reach out via [Incogniton support](https://incogniton.com/contact).

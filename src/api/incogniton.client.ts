@@ -1,5 +1,5 @@
-import { defaults } from '../config/defaults';
-import { ProfileStatus } from '../models/browser-profile.types';
+import { defaults } from '../config/defaults.js';
+import { ProfileStatus } from '../models/browser-profile.types.js';
 import {
   BrowserProfile,
   CreateBrowserProfileRequest,
@@ -8,14 +8,29 @@ import {
   AddCookieRequest,
   ProfileId,
   Proxy,
-} from '../models/common.types';
-import { HttpAgentBuilder } from '../utils/http/agent';
-import { InitHttpAgent } from '../utils/http/provider';
+} from '../models/common.types.js';
+import { HttpAgentBuilder } from '../utils/http/agent.js';
+import { InitHttpAgent } from '../utils/http/provider.js';
 
 export class IncognitonClient {
   private readonly httpAgent: HttpAgentBuilder;
   private readonly timeout: number;
 
+  /**
+   * Creates a new Incogniton API client instance
+   * @param {string} [baseUrl] `Optional` - Base URL for the Incogniton API:
+   * - If not provided, defaults to http://localhost:35000
+   * - Can be overridden by `INCOGNITON_API_URL` environment variable
+   * - The client automatically handles API request timeouts and error handling
+   * 
+   * @example
+   * ```typescript
+   * const client = new IncognitonClient();
+   * ```
+   * 
+   * @note For browser automation with Puppeteer integration, use the `{ IncognitonBrowser }` module
+   * which provides a higher-level interface for managing browser instances.
+   */
   constructor(baseUrl?: string) {
     this.httpAgent = InitHttpAgent('incogniton-client', baseUrl || defaults.baseUrl);
     this.timeout = defaults.timeout / 1000; // Convert milliseconds to seconds

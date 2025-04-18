@@ -1,25 +1,10 @@
 import puppeteer, { Browser } from 'puppeteer-core';
-import { IncognitonClient } from '../api/incogniton.client';
-import { BrowserProfile } from '../models/common.types';
-import { HttpAgentBuilder } from '../utils/http/agent';
-import { InitHttpAgent } from '../utils/http/provider';
-import { logger } from '../utils/logger';
-
-/**
- * Configuration options for launching an Incogniton browser instance
- */
-export interface BrowserConfig {
-  /** The profile ID to use for the browser instance */
-  profileId: string;
-  /** Whether to launch in headless mode */
-  headless?: boolean;
-  /** Custom command-line arguments for the browser */
-  customArgs?: string;
-  /** Port number for the Incogniton instance (default: 35000) */
-  port?: number;
-  /** Time to wait for browser launch in milliseconds (default: 30000) */
-  launchTimeout?: number;
-}
+import { IncognitonClient } from '../api/incogniton.client.js';
+import { BrowserProfile } from '../models/common.types.js';
+import { BrowserConfig } from '../models/api.types.js';
+import { HttpAgentBuilder } from '../utils/http/agent.js';
+import { InitHttpAgent } from '../utils/http/provider.js';
+import { logger } from '../utils/logger.js';
 
 interface LaunchResponse {
   puppeteerUrl: string;
@@ -27,7 +12,7 @@ interface LaunchResponse {
 }
 
 /**
- * A class that manages browser automation using Incogniton and Puppeteer
+ * This Browser Client manages browser automation using Incogniton antidetect browser and Puppeteer
  */
 export class IncognitonBrowser {
   private client: IncognitonClient;
@@ -35,7 +20,7 @@ export class IncognitonBrowser {
   private httpAgent: HttpAgentBuilder;
 
   /**
-   * Creates a new IncognitonBrowser instance
+   * Creates a new Incogniton Browser instance
    * @param {BrowserConfig} config Configuration options for the browser:
    * - `profileId`: The profile ID to use for the browser instance
    * - `headless`: Set to `true` to run the browser automation without GUI

@@ -9,11 +9,11 @@ export interface GeneralProfileInformation {
   /** Optional group to which the profile belongs. */
   profile_group?: string;
   /** Timestamp when the profile was last edited. */
-  profile_last_edited: string;
+  profile_last_edited?: string;
   /** The simulated operating system for the profile. */
-  simulated_operating_system: string;
+  simulated_operating_system?: string;
   /** The version of the browser used in the profile. */
-  profile_browser_version: string;
+  profile_browser_version?: string;
 }
 
 /**

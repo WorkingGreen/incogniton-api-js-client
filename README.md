@@ -11,6 +11,7 @@ The Incogniton Browser Client provides two main components:
 2. **Browser Automation**: A powerful browser automation module that integrates with Puppeteer, enabling you to launch and control Incogniton browser instances with custom profiles.
 
 ## Features
+The Incogniton package contains two modules:
 
 ### API Client
 
@@ -30,9 +31,9 @@ The Incogniton Browser Client provides two main components:
 ## Installation
 
 ```bash
-npm install incogniton-js-client
+npm install incogniton
 # or
-yarn add incogniton-js-client
+yarn add incogniton
 ```
 
 ## Usage
@@ -40,7 +41,7 @@ yarn add incogniton-js-client
 ### API Client
 
 ```typescript
-import { IncognitonClient } from 'incogniton-js-client';
+import { IncognitonClient } from 'incogniton';
 
 const client = new IncognitonClient();
 
@@ -62,7 +63,7 @@ const profileDetails = await client.profile.get(profile.id);
 ### Browser Automation
 
 ```typescript
-import { IncognitonBrowser } from 'incogniton-js-client';
+import { IncognitonBrowser } from 'incogniton';
 
 const browser = new IncognitonBrowser({
   profileId: 'your-profile-id',

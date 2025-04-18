@@ -1,7 +1,7 @@
 import { IncognitonClient } from '../api/incogniton.client';
 import { IncognitonBrowser } from '../browser/incogniton.browser';
-import { logger } from '../utils/logger';
 import { CreateBrowserProfileRequest } from '../models/common.types';
+import { logger } from '../utils/logger';
 
 // Simple profile data for testing
 const profileData: CreateBrowserProfileRequest = {
@@ -75,7 +75,7 @@ async function testStartBrowser() {
     });
 
     logger.info('Starting browser...');
-    const browser = await incognitonBrowser.start();
+    const browser = await incognitonBrowser.quickstart('MY QUICK PROFILE');
 
     // Verify browser connection
     logger.info(`Browser started successfully`);
@@ -116,8 +116,10 @@ async function runTests() {
   try {
     // Test browser start
     logger.info('Testing browser start...');
-    // browser = await testStartBrowser();
-    browser = await testAddProfile();
+    browser = await testStartBrowser();
+
+    // Test REST Client
+    // browser = await testAddProfile();
     logger.info('Browser start test completed successfully!');
   } catch (error) {
     logger.error('Test suite failed:', error);

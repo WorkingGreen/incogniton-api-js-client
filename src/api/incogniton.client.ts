@@ -1,5 +1,5 @@
-import { HttpAgentBuilder } from '../utils/http/agent';
-import { InitHttpAgent } from '../utils/http/provider';
+import { defaults } from '../config/defaults';
+import { ProfileStatus } from '../models/browser-profile.types';
 import {
   BrowserProfile,
   CreateBrowserProfileRequest,
@@ -9,8 +9,8 @@ import {
   ProfileId,
   Proxy,
 } from '../models/common.types';
-import { defaults } from '../config/defaults';
-import { ProfileStatus } from '../models/browser-profile.types';
+import { HttpAgentBuilder } from '../utils/http/agent';
+import { InitHttpAgent } from '../utils/http/provider';
 
 export class IncognitonClient {
   private readonly httpAgent: HttpAgentBuilder;
@@ -94,7 +94,7 @@ export class IncognitonClient {
      * @route GET /profile/launch/{profile_id}
      * @param {ProfileId} id - Unique identifier of the profile to launch
      * @returns Promise<{ message: string; status: 'ok' }> - Launch confirmation
-     */
+     */ 
     launch: async (id: ProfileId): Promise<{ message: string; status: 'ok' }> => {
       return this.httpAgent
         .get(`/profile/launch/${id}`)

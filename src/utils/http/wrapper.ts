@@ -1,5 +1,4 @@
 import { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
-
 import { APIError, HttpError, TimeoutError } from './errors';
 // import { encode } from './jwt';
 

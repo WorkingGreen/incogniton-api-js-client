@@ -30,17 +30,17 @@ export interface ApiError extends BaseResponse {
 /** General information about a browser profile */
 export interface GeneralProfileInformation {
   /** Human-readable name for the profile */
-  profile_name: string;
+  profile_name?: string;
   /** Optional notes or comments about the profile's purpose */
-  profile_notes: string;
+  profile_notes?: string;
   /** Category or group identifier for organizing profiles */
-  profile_group: string;
+  profile_group?: string;
   /** ISO 8601 timestamp of the last profile modification */
-  profile_last_edited: string;
+  profile_last_edited?: string;
   /** Operating system to emulate (e.g., Windows, macOS, Linux) */
-  simulated_operating_system: string;
+  simulated_operating_system?: string;
   /** Browser version or engine version to simulate */
-  profile_browser_version: string;
+  profile_browser_version?: string;
   /** Unique identifier for the browser */
   browser_id?: string;
 }

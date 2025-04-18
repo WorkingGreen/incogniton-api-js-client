@@ -12,11 +12,13 @@
   "parserOptions": {
     "ecmaVersion": 2020,
     "sourceType": "module",
-    "project": "./tsconfig.json"
+    "project": "./tsconfig.json",
+    "tsconfigRootDir": "."
   },
   "env": {
     "node": true,
-    "es6": true
+    "es6": true,
+    "jest": true
   },
   "ignorePatterns": ["dist/*", "node_modules/*"],
   "rules": {
@@ -25,13 +27,21 @@
     "@typescript-eslint/no-unsafe-return": "error",
     "@typescript-eslint/no-unsafe-argument": "error",
     "@typescript-eslint/no-unsafe-member-access": "error",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "no-console": "warn",
     "import/no-unresolved": "error",
     "import/named": "error"
   },
   "settings": {
     "import/resolver": {
-      "typescript": {}
+      "typescript": {
+        "alwaysTryTypes": true,
+        "project": "./tsconfig.json"
+      },
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"],
+        "moduleDirectory": ["node_modules", "src"]
+      }
     }
   }
 }

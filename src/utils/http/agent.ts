@@ -1,5 +1,5 @@
-import { RequestWrapper } from './wrapper';
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { RequestWrapper } from './wrapper';
 
 const defaultAxiosConfig: Partial<AxiosRequestConfig> = {
   transitional: { clarifyTimeoutError: true },

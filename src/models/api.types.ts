@@ -2,12 +2,12 @@
  * @module models/api
  */
 
-import type { BaseResponse } from './common.types';
 import type {
   CreateBrowserProfileRequest as BrowserProfileRequest,
   UpdateBrowserProfileRequest as BrowserProfileUpdateRequest,
   ProfileStatus,
 } from './browser-profile.types';
+import type { BaseResponse } from './common.types';
 
 export interface ApiResponse<T> extends BaseResponse {
   data: T;

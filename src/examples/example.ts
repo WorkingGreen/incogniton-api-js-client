@@ -1,5 +1,5 @@
-import { IncognitonClient } from '../src/api/incogniton.client';
-import { logger } from '../src/utils/logger';
+import { IncognitonClient } from '../api/incogniton.client';
+import { logger } from '../utils/logger';
 
 async function runExamples() {
   const client = new IncognitonClient();

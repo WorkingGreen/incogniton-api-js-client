@@ -1,8 +1,9 @@
-import puppeteer, { Browser, ConnectOptions } from 'puppeteer-core';
+import puppeteer, { Browser } from 'puppeteer-core';
 import { IncognitonClient } from '../api/incogniton.client';
-import { logger } from '../utils/logger';
+import { BrowserProfile } from '../models/common.types';
 import { HttpAgentBuilder } from '../utils/http/agent';
 import { InitHttpAgent } from '../utils/http/provider';
+import { logger } from '../utils/logger';
 
 /**
  * Configuration options for launching an Incogniton browser instance
@@ -35,7 +36,12 @@ export class IncognitonBrowser {
 
   /**
    * Creates a new IncognitonBrowser instance
-   * @param config Configuration options for the browser
+   * @param {BrowserConfig} config Configuration options for the browser:
+   * - `profileId`: The profile ID to use for the browser instance
+   * - `headless`: Set to `true` to run the browser automation without GUI
+   * - `customArgs`: Custom command-line arguments for the browser
+   * - `port`: Port number for the Incogniton instance
+   * - `launchTimeout`: Time to wait for browser launch in milliseconds
    */
   constructor(config: BrowserConfig) {
     this.config = {
@@ -48,7 +54,42 @@ export class IncognitonBrowser {
     this.httpAgent = InitHttpAgent('incogniton-browser', `http://localhost:${this.config.port}`);
   }
 
-  //TODO: ADD QUICKSTART WITH AUTO PROFILE CREATION
+  /**
+   * Starts a new browser instance with an automatically created profile
+   * @param name Optional name for the profile
+   * @returns A connected Puppeteer browser instance
+   * @throws Error if profile creation or browser launch fails
+   */
+  async quickstart(
+    name?: string,
+    generalInfo?: Partial<BrowserProfile['general_profile_information']>
+  ): Promise<Browser> {
+    try {
+      // Create a new profile
+      const profileData: BrowserProfile = {
+        general_profile_information: {
+          profile_name: name || `QProfile_${Date.now()}`,
+          profile_notes: 'Created via quickstart',
+          ...generalInfo,
+        },
+      };
+
+      const { profile_browser_id } = await this.client.profile.add({ profileData });
+      logger.info('Created new profile:', profile_browser_id);
+
+      // Update config with new profile ID
+      this.config.profileId = profile_browser_id;
+
+      // Start browser with new profile
+      return this.start();
+    } catch (error) {
+      logger.error('Error in quickstart:', error);
+      if (error instanceof Error) {
+        throw new Error(`Quickstart failed: ${error.message}`);
+      }
+      throw error;
+    }
+  }
 
   /**
    * Starts a new Incogniton browser instance with the specified configuration
@@ -68,7 +109,7 @@ export class IncognitonBrowser {
         .post(launchUrl)
         .set('Content-Type', 'application/json')
         .setBody(requestBody)
-        .do();
+        .do(this.config.launchTimeout);
 
       const data = response as LaunchResponse;
       logger.info('Browser launch response:', data);

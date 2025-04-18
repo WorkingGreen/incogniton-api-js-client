@@ -1,5 +1,5 @@
-import { IncognitonClient } from '../api/incogniton.client';
 import { jest } from '@jest/globals';
+import { IncognitonClient } from '../api/incogniton.client';
 import { BrowserProfile } from '../models/common.types';
 import { logger } from '../utils/logger';
 
@@ -46,12 +46,12 @@ describe('IncognitonClient - Full Profile Lifecycle', () => {
     const profileData = {
       profileData: {
         general_profile_information: {
-          profile_name: 'Test Profile',
-          profile_notes: 'Test Notes',
-          profile_group: 'Test Group',
-          profile_last_edited: new Date().toISOString(),
-          simulated_operating_system: 'Windows',
-          profile_browser_version: '120',
+          // profile_name: 'Test Profile',
+          // profile_notes: 'Test Notes',
+          // profile_group: 'Test Group',
+          // profile_last_edited: new Date().toISOString(),
+          // simulated_operating_system: 'Windows',
+          // profile_browser_version: '120',
         },
       },
     };

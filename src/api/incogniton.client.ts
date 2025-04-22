@@ -18,10 +18,9 @@ export class IncognitonClient {
 
   /**
    * Creates a new Incogniton API client instance
-   * @param {string} [baseUrl] `Optional` - Base URL for the Incogniton API:
+   * @param baseUrl `optional` Base URL for the Incogniton API:
    * - If not provided, defaults to http://localhost:35000
    * - Can be overridden by `INCOGNITON_API_URL` environment variable
-   * - The client automatically handles API request timeouts and error handling
    * 
    * @example
    * ```typescript
@@ -66,9 +65,22 @@ export class IncognitonClient {
      * @returns Promise<{ profile_browser_id: string; status: 'ok' }> - Created profile details
      */
     add: async (
-      profileData: CreateBrowserProfileRequest
+      addProfileEntry: CreateBrowserProfileRequest
     ): Promise<{ profile_browser_id: string; status: 'ok' }> => {
-      return this.httpAgent.post('/profile/add').setBody(profileData).toFormUrlEncoded().do();
+      // Convert the entire profileData object to a JSON string
+      const jsonString = JSON.stringify(addProfileEntry.profileData);
+      
+      // Wrap it in the profileData parameter as expected by the API
+      const formData = {
+        profileData: jsonString
+      }
+      
+
+      return this.httpAgent
+        .post('/profile/add')
+        .setBody(formData)
+        .toFormUrlEncoded()
+        .do();
     },
 
     /**
@@ -82,10 +94,21 @@ export class IncognitonClient {
       id: ProfileId,
       data: UpdateBrowserProfileRequest
     ): Promise<{ message: string; status: 'ok' }> => {
+      // First, stringify the data exactly as needed by the API
+      const jsonString = JSON.stringify({
+        profile_browser_id: id,
+        ...data.profileData
+      });
+      
+      // Then wrap it in the profileData parameter as expected by the API
+      const formData = {
+        profileData: jsonString
+      };
+
       return this.httpAgent
         .post('/profile/update')
-        .set('Content-Type', 'application/json')
-        .setBody({ ...data, profile_browser_id: id })
+        .setBody(formData)
+        .toFormUrlEncoded()
         .do();
     },
 
@@ -208,12 +231,30 @@ export class IncognitonClient {
      */
     add: async (
       profileId: ProfileId,
-      data: AddCookieRequest
+      cookieData: Array<{
+        name: string;
+        value: string;
+        domain: string;
+        path?: string;
+        secure?: boolean;
+        httpOnly?: boolean;
+        sameSite?: string;
+        expires?: number;
+      }>
     ): Promise<{ profile_browser_id: string; format: string; cookie: string }> => {
+      // Convert cookie data to base64
+      const cookieString = Buffer.from(JSON.stringify(cookieData)).toString('base64');
+      
+      const requestData = {
+        profile_browser_id: profileId,
+        format: 'base64json' as const,
+        cookie: cookieString
+      };
+
       return this.httpAgent
         .post('/profile/addCookie')
         .set('Content-Type', 'application/json')
-        .setBody({ ...data, profile_browser_id: profileId })
+        .setBody(requestData)
         .do();
     },
 

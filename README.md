@@ -11,6 +11,7 @@ The Incogniton Browser Client provides two main components:
 2. **Browser Automation**: A powerful browser automation module that integrates with Puppeteer, enabling you to launch and control Incogniton browser instances with custom profiles.
 
 ## Features
+
 The Incogniton package contains two modules:
 
 ### API Client
@@ -37,6 +38,8 @@ yarn add incogniton
 ```
 
 ## Usage
+
+Before using the Incogniton API Client or Browser Automation, ensure that the Incogniton desktop app is running (open) locally. The client relies on the Incogniton app to manage profiles and perform browser automation tasks.
 
 ### API Client
 
@@ -141,4 +144,4 @@ We welcome contributions! Please feel free to submit a Pull Request.
 
 ## Support
 
-For help or technical support, please reach out via [Incogniton support](https://incogniton.com/contact).
+For help or technical support, please reach out to <yusuf@incogniton.com> or visit [Incogniton support](https://incogniton.com/contact).

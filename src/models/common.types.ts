@@ -223,14 +223,12 @@ export interface GetCookieResponse extends BaseResponse {
  * Request type for adding a cookie
  */
 export interface AddCookieRequest {
-  name: string;
-  value: string;
-  domain: string;
-  path?: string;
-  secure?: boolean;
-  httpOnly?: boolean;
-  sameSite?: string;
-  expires?: number;
+  /** The unique identifier of the profile in Incogniton */
+  profile_browser_id: string;
+  /** Specifies the encoding format of the cookie data. Use 'base64json' */
+  format: 'base64json';
+  /** The cookie data, provided as a Base64-encoded JSON string */
+  cookie: string;
 }
 
 /**

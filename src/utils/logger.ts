@@ -33,7 +33,7 @@ export const logger = {
    * @param args Additional arguments to log
    */
   success: (message: string, ...args: unknown[]): void => {
-    console.log(`${colors.green}[SUCCESS]${colors.reset} ${message}`, ...args);
+    console.log(`\n\n${colors.green}[SUCCESS]${colors.reset} ${message}`, ...args);
   },
 
   /**

@@ -1,15 +1,18 @@
-import puppeteer, { Browser } from 'puppeteer-core';
 import { IncognitonClient } from '../api/incogniton.client.js';
 import { BrowserProfile } from '../models/common.types.js';
 import { BrowserConfig } from '../models/api.types.js';
 import { HttpAgentBuilder } from '../utils/http/agent.js';
 import { InitHttpAgent } from '../utils/http/provider.js';
 import { logger } from '../utils/logger.js';
+import { LoadingIndicator } from '../utils/loading-indicator.js';
+import type { Browser } from 'puppeteer-core';
 
 interface LaunchResponse {
   puppeteerUrl: string;
   [key: string]: unknown;
 }
+
+let puppeteer: typeof import('puppeteer-core');
 
 /**
  * This Browser Client manages browser automation using Incogniton antidetect browser and Puppeteer
@@ -23,14 +26,14 @@ export class IncognitonBrowser {
    * Creates a new Incogniton Browser instance
    * @param {BrowserConfig} config Configuration options for the browser:
    * - `profileId`: The profile ID to use for the browser instance
-   * - `headless`: Set to `true` to run the browser automation without GUI
+   * - `headless`: Defaults to `true` to run the browser in headless mode.
    * - `customArgs`: Custom command-line arguments for the browser
    * - `port`: Port number for the Incogniton instance
    * - `launchTimeout`: Time to wait for browser launch in milliseconds
    */
-  constructor(config: BrowserConfig) {
+  constructor(config?: BrowserConfig) {
     this.config = {
-      headless: false,
+      headless: true,
       port: 35000,
       launchTimeout: 35000,
       ...config,
@@ -40,8 +43,26 @@ export class IncognitonBrowser {
   }
 
   /**
+   * Ensures puppeteer-core is available and imported
+   * @private
+   */
+  private async ensurePuppeteer() {
+    if (!puppeteer) {
+      try {
+        puppeteer = await import('puppeteer-core');
+      } catch (err) {
+        throw new Error(
+          'Missing peer dependency: Please install "puppeteer-core" to use browser automation features.'
+        );
+      }
+    }
+    return puppeteer;
+  }
+
+  /**
    * Starts a new browser instance with an automatically created profile
-   * @param name Optional name for the profile
+   * @param name `Optional` sets the name for profile
+   * @param generalInfo `Optional` additional profile information like Notes, Browser OS, etc
    * @returns A connected Puppeteer browser instance
    * @throws Error if profile creation or browser launch fails
    */
@@ -51,15 +72,16 @@ export class IncognitonBrowser {
   ): Promise<Browser> {
     try {
       // Create a new profile
+      const timestamp = Date.now().toString().slice(-4);
       const profileData: BrowserProfile = {
-        general_profile_information: {
-          profile_name: name || `QProfile_${Date.now()}`,
-          profile_notes: 'Created via quickstart',
-          ...generalInfo,
-        },
+        general_profile_information:{
+          profile_name: `${name || `QProfile_${timestamp}`}`,
+          profile_notes: "Created via Quickstart",
+          ...generalInfo
+        }
       };
 
-      const { profile_browser_id } = await this.client.profile.add({ profileData });
+      const { profile_browser_id } = await this.client.profile.add({profileData });
       logger.info('Created new profile:', profile_browser_id);
 
       // Update config with new profile ID
@@ -77,12 +99,14 @@ export class IncognitonBrowser {
   }
 
   /**
-   * Starts a new Incogniton browser instance with the specified configuration
+   * Starts a new Incogniton browser instance with the specified configuration and profile
    * @returns A connected Puppeteer browser instance
    * @throws Error if browser launch fails
    */
   async start(): Promise<Browser> {
     try {
+      await this.ensurePuppeteer();
+      
       const launchUrl = `/automation/launch/puppeteer`;
       const requestBody = {
         profileID: this.config.profileId,
@@ -101,8 +125,11 @@ export class IncognitonBrowser {
       const { puppeteerUrl } = data;
 
       // Wait for the browser to launch
-      logger.info('The Incogniton browser is launching...');
+      const loadingIndicator = new LoadingIndicator();
+      loadingIndicator.start('Launching Incogniton browser...this may take a few seconds.');
+      // Wait for the browser to be ready
       await new Promise(resolve => setTimeout(resolve, this.config.launchTimeout));
+      loadingIndicator.stop();
 
       // Connect to browser
       const browser = await puppeteer.connect({
@@ -110,7 +137,19 @@ export class IncognitonBrowser {
         ignoreHTTPSErrors: true,
       });
 
-      logger.info('Successfully connected to browser');
+      logger.success(`${this.config.headless ? 'Browser' : 'Headless Browser'} connected!\n\n`);
+      logger.info('Press Ctrl+C to stop the browser.');
+      
+      // Remove existing SIGINT handlers to prevent duplicates
+      process.removeAllListeners('SIGINT');
+      
+      // Setup SIGINT handler for graceful shutdown using once
+      process.once('SIGINT', async () => {
+        logger.info('Closing browser...');
+        await this.close(browser);
+        process.exit(0);
+      });
+
       return browser;
     } catch (error) {
       logger.error('Error starting Incogniton session:', error);

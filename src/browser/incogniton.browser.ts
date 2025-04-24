@@ -24,12 +24,12 @@ export class IncognitonBrowser {
 
   /**
    * Creates a new Incogniton Browser instance
-   * @param {BrowserConfig} config Configuration options for the browser:
-   * - `profileId`: The profile ID to use for the browser instance
-   * - `headless`: Defaults to `true` to run the browser in headless mode.
-   * - `customArgs`: Custom command-line arguments for the browser
-   * - `port`: Port number for the Incogniton instance
-   * - `launchTimeout`: Time to wait for browser launch in milliseconds
+   * @param {BrowserConfig} [config] Configuration options for the browser (optional):
+   * - `profileId`: The profile ID to use for the browser instance (optional)
+   * - `headless`: Runs the browser in headless mode, defaults to true
+   * - `customArgs`: Custom command-line arguments for the browser (optional)
+   * - `port`: Port number for the Incogniton instance, defaults to 35000
+   * - `launchTimeout`: Time to wait for browser launch in milliseconds, defaults to 35000
    */
   constructor(config?: BrowserConfig) {
     this.config = {
@@ -61,8 +61,8 @@ export class IncognitonBrowser {
 
   /**
    * Starts a new browser instance with an automatically created profile
-   * @param name `Optional` sets the name for profile
-   * @param generalInfo `Optional` additional profile information like Notes, Browser OS, etc
+   * @param {string} [name] Name for the profile (optional)
+   * @param {Partial<BrowserProfile['general_profile_information']>} [generalInfo] Additional profile information like Notes, Browser OS, etc (optional)
    * @returns A connected Puppeteer browser instance
    * @throws Error if profile creation or browser launch fails
    */

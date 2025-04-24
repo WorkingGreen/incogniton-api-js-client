@@ -48,12 +48,10 @@ describe('IncognitonClient - Full Profile Lifecycle', () => {
     const profileData = {
       profileData: {
         general_profile_information: {
-          // profile_name: 'Test Profile',
-          // profile_notes: 'Test Notes',
-          // profile_group: 'Test Group',
-          // profile_last_edited: new Date().toISOString(),
-          // simulated_operating_system: 'Windows',
-          // profile_browser_version: '120',
+          profile_name: 'Test Profile',
+          profile_notes: 'Testing 1,2,3',
+          simulated_operating_system: 'Windows',
+          profile_browser_version: '131',
         },
       },
     };

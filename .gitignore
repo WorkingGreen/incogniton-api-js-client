@@ -6,9 +6,6 @@ yarn-error.log*
 
 # Build output
 dist/
-build/
-*.tsbuildinfo
-
 # Environment variables
 .env
 .env.local
@@ -44,4 +41,4 @@ coverage/
 .yarn-integrity
 
 # Documentation
-openAPI-docs.yaml 
+openAPI-docs.yaml

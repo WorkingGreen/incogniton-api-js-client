@@ -1,0 +1,27 @@
+# Test files
+dist/test/
+src/test/
+
+# Source files (since we're publishing compiled code)
+src/
+
+# Dev config files
+.eslintrc*
+.prettierrc*
+jest.config.*
+tsconfig.*
+
+# Dev folders
+coverage/
+node_modules/
+
+# IDE folders
+.vscode/
+.idea/
+
+# Git files
+.git/
+.gitignore
+
+# Misc
+*.log

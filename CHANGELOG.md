@@ -1,6 +1,12 @@
 # Changelog
 
-## [1.0.11] - 2025-04-25
+## [1.0.13] - 2024-03-XX
+
+### Changed
+
+- Reduced package size by excluding example files while maintaining full source code in repository
+
+## [1.0.12] - 2025-04-25
 
 ### Changed
 

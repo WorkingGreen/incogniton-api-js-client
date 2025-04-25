@@ -4,20 +4,22 @@
     "module": "ES2020",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "baseUrl": ".",
     "declaration": true,
     "removeComments": false,
+    "sourceMap": true,
+    "declarationMap": true,
     "paths": {
-      "*": ["*"]
+      "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*", "src/examples/**/*", "packages/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

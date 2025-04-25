@@ -4,6 +4,14 @@
     "allowImportingTsExtensions": false,
     "emitDeclarationOnly": false,
     "module": "ES2020",
-    "outDir": "./dist"
-  }
+    "outDir": "./dist",
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/test/**/*"
+  ]
 }

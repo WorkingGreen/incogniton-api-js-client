@@ -1,28 +1,29 @@
-import { IncognitonClient } from 'incogniton';
-import { IncognitonBrowser } from 'incogniton';
+import { IncognitonClient } from "src/api/incogniton.client.js";
 
-// profileId=dabe4254-e661-4214-bfef-e89d6ffbcfe5
+// import { IncognitonBrowser } from 'incogniton';
 
-const listAllProfiles = async () => {
-  const incog = new IncognitonClient();
-  await incog.profile.stop('dabe4254-e661-4214-bfef-e89d6ffbcfe5');
+// // profileId=dabe4254-e661-4214-bfef-e89d6ffbcfe5
+
+// const listAllProfiles = async () => {
+//   const incog = new IncognitonClient();
+//   await incog.profile.stop('dabe4254-e661-4214-bfef-e89d6ffbcfe5');
   
   
-};
+// };
 
-listAllProfiles();
+// listAllProfiles();
 
-async function main() {
-  try {
-    // Initialize with a longer timeout
-    const client = new IncognitonBrowser({});
-    await client.start()
-        
-  } catch (error) {
-    console.error('Failed to start browser:', error);
-    process.exit(1);
-  }
-}
+// async function main() {
 
-main();
+//     const listAllProfiles = async () => {
+//       const incog = new IncognitonBrowser({});
+//       const listProfiles = await incog.quickstart();
+//     };
+    
+//     listAllProfiles();
+    
+//   }
+
+
+// main();
 

@@ -28,7 +28,7 @@ async function testAddProfile() {
   try {
     const client = new IncognitonClient();
     const response = await client.profile.add(addProfileEntry);
-    logger.info('Profile added successfully:', response);
+    logger.info('Profile addition response:', response);
     return response;
   } catch (error) {
     logger.error('Failed to add profile:', error);
@@ -46,6 +46,7 @@ async function testStartBrowser() {
 
     logger.info('Starting browser...');
     const browser = await incognitonBrowser.quickstart('MY QUICK PROFILE');
+    incognitonBrowser.testFingerprint(browser);
 
     // Verify browser connection
     logger.info(`Browser started successfully`);
@@ -110,9 +111,10 @@ async function testUpdateProfile(profileId: string) {
 // Test runner
 async function runTests() {
   try {
-    // Test REST Client - Add Profile
-    const addedProfile = await testAddProfile();
-    console.log("🚀 ~ runTests ~ addedProfile:", addedProfile);
+    const incog = new IncognitonBrowser();
+  const browser = await incog.quickstart();
+  const fingerprintResult = await incog.testFingerprint(browser);
+    console.log("🚀 ~ runTests ~ fingerprintResult:", fingerprintResult)
   } catch (error) {
     console.error('Test failed:', error);
   }

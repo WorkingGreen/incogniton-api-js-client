@@ -51,16 +51,16 @@ const client = new IncognitonClient();
 // Create a new browser profile
 const profile = await client.profile.add({
   profileData: {
-    name: 'Profile A',
+    name: 'MY PROFILE',
     // ...
   },
 });
 
 // Get all profiles
-const profiles = await client.profile.getAll();
+const profiles = await client.profile.list();
 
 // Get a specific profile
-const profileDetails = await client.profile.get(profile.id);
+const profileDetails = await client.profile.get('PROFILE_ID');
 ```
 
 ### Browser Automation

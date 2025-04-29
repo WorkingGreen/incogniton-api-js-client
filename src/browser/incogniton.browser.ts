@@ -52,9 +52,8 @@ export class IncognitonBrowser {
       try {
         puppeteer = await import('puppeteer-core');
       } catch (err) {
-        throw new Error(
-          'Missing peer dependency: Please install "puppeteer-core" to use browser automation features.'
-        );
+        logger.error('Missing peer dependency: puppeteer-core is required for browser automation features');
+        throw new Error('Missing peer dependency: puppeteer-core is required for browser automation features');
       }
     }
     return puppeteer;
@@ -101,19 +100,19 @@ export class IncognitonBrowser {
 
   /**
    * Starts a new Incogniton browser instance with the specified configuration and profile
+   * @param {string} [profileId] Profile ID to use instead of the one in config (optional)
    * @returns A connected Puppeteer browser instance
    * @throws Error if browser launch fails
    */
-  async start(): Promise<Browser> {
+  async start(profileId?: string): Promise<Browser> {
     try {
       await this.ensurePuppeteer();
       
       const launchUrl = `/automation/launch/puppeteer`;
       const requestBody = {
-        profileID: this.config.profileId,
+        profileID: profileId || this.config.profileId,
         customArgs: this.config.headless ? '--headless=new' : this.config.customArgs || '',
       };
-
       // Make a POST request with body data using HttpAgentBuilder
       const response = await this.httpAgent
         .post(launchUrl)
@@ -176,12 +175,11 @@ export class IncognitonBrowser {
 
       // Check for trustworthy status
       const result = await page.$eval(
-        '.trustworthy-status:not(.hide)',
+        '.identity-status span:not(.hide)',
         element => element?.textContent?.trim() || ''
       );
 
       await page.close();
-      logger.info(`IPHey test result: ${result}`);
       return result;
     } catch (error) {
       logger.error('IPHey test failed:', error);

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.14] - 2024-05-21
+
+### Changed
+
+- Updated `testFingerprint` method (IPHey fingerprinting test) to adapt to the recent UI changes on iphey.com, ensuring accuracy.
+
 ## [1.0.13] - 2024-03-XX
 
 ### Changed

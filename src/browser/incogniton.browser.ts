@@ -6,6 +6,7 @@ import { InitHttpAgent } from '../utils/http/provider.js';
 import { logger } from '../utils/logger.js';
 import { LoadingIndicator } from '../utils/loading-indicator.js';
 import type { Browser } from 'puppeteer-core';
+import  delay from '../utils/delay.js';
 
 interface LaunchResponse {
   puppeteerUrl: string;
@@ -128,7 +129,7 @@ export class IncognitonBrowser {
       const loadingIndicator = new LoadingIndicator();
       loadingIndicator.start('Launching Incogniton browser...this may take a few seconds.');
       // Wait for the browser to be ready
-      await new Promise(resolve => setTimeout(resolve, this.config.launchTimeout));
+      await delay(this.config.launchTimeout);
       loadingIndicator.stop();
 
       // Connect to browser

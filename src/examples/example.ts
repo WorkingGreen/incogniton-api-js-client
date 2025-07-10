@@ -69,10 +69,12 @@ async function runExamples() {
     const newProfile = await client.profile.add(newProfileData);
     logger.info('New profile added:', newProfile);
 
-    // Example 4: Launch a profile
-    logger.info(`Launching profile with ID: ${profileId}`);
-    const launchResponse = await client.profile.launch(profileId);
-    logger.info('Launch response:', launchResponse);
+    // Example 4: Launch a profile (Puppeteer)
+    // const browser = await incognitonBrowser.startPuppeteer(profileId);
+    // Example 4: Launch a profile (Playwright)
+    // const browser = await incognitonBrowser.startPlaywright(profileId);
+    // logger.info('Browser launched:', browser);
+    
   } catch (error) {
     logger.error('An error occurred while running examples:', error);
   }

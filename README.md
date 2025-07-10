@@ -73,15 +73,22 @@ const browser = new IncognitonBrowser({
   headless: false,
 });
 
-// Launch a browser instance
-const instance = await browser.start();
+// --- Puppeteer Example ---
+// Launch a browser instance with Puppeteer
+const puppeteerInstance = await browser.startPuppeteer();
+const puppeteerPage = await puppeteerInstance.newPage();
+await puppeteerPage.goto('https://example.com', { waitUntil: 'networkidle0' });
+const puppeteerScreenshotBuffer = await puppeteerPage.screenshot({ path: 'example-screenshot.png' });
 
-// Use the browser instance
-const page = await instance.newPage();
-await page.goto('https://example.com');
+await browser.close(puppeteerInstance);
 
-// Close the browser when done
-await browser.close(instance);
+// --- Playwright Example ---
+// Launch a browser instance with Playwright
+const playwrightInstance = await browser.startPlaywright();
+const playwrightPage = await playwrightInstance.newPage();
+await playwrightPage.goto('https://example.com', { waitUntil: 'load' });
+const playwrightScreenshotBuffer = await playwrightPage.screenshot({ path: 'example-screenshot.png' });
+await browser.close(playwrightInstance);
 ```
 
 ## Configuration

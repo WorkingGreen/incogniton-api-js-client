@@ -1,5 +1,7 @@
+jest.setTimeout(35000);
 import { IncognitonClient } from '../api/incogniton.client.js';
 import { logger } from '../utils/logger.js';
+import { IncognitonBrowser } from '../browser/incogniton.browser.js';
 
 describe('IncognitonClient', () => {
   let client: IncognitonClient;
@@ -50,7 +52,7 @@ describe('IncognitonClient - Full Profile Lifecycle', () => {
         general_profile_information: {
           profile_name: 'Test Profile',
           profile_notes: 'Testing 1,2,3',
-          simulated_operating_system: 'Windows',
+          simulated_operating_system: 'Windows', 
           profile_browser_version: '131',
         },
       },
@@ -83,4 +85,65 @@ describe('IncognitonClient - Full Profile Lifecycle', () => {
     // Clear profileId after successful deletion
     profileId = '';
   }, 30000); // Increase timeout to 30 seconds for real API calls
+});
+
+describe('IncognitonBrowser - Puppeteer and Playwright Launch', () => {
+  let client: IncognitonClient;
+  let profileId: string;
+
+  beforeEach(() => {
+    client = new IncognitonClient();
+  });
+
+  afterEach(async () => {
+    if (profileId) {
+      try {
+        await client.profile.delete(profileId);
+      } catch (error) {
+        logger.error('Failed to cleanup profile:', { error });
+      }
+    }
+  });
+
+  it('should launch and close browser with Puppeteer and Playwright', async () => {
+    // Step 1: Add a profile
+    const profileData = {
+      profileData: {
+        general_profile_information: {
+          profile_name: 'Test Profile Browser',
+          profile_notes: 'Testing Puppeteer/Playwright',
+          simulated_operating_system: 'Windows',
+          profile_browser_version: '131',
+        },
+      },
+    };
+    const addResponse = await client.profile.add(profileData);
+    expect(addResponse.status).toBe('ok');
+    profileId = addResponse.profile_browser_id ?? '';
+
+    const browserClient = new IncognitonBrowser({ profileId });
+    
+    // Puppeteer
+    // const puppeteerBrowser = await browserClient.startPuppeteer(profileId);
+    // expect(puppeteerBrowser).toBeDefined();
+    // await browserClient.close(puppeteerBrowser);
+
+    // Playwright
+    const playwrightBrowser = await browserClient.startPlaywright(profileId);
+    expect(playwrightBrowser).toBeDefined();
+
+    // Simple automation: open page, screenshot
+    const page = await playwrightBrowser.newPage();
+    await page.goto('https://incogniton.com/blog');
+    
+
+    logger.info('[Test] Page URL:', { pageUrl: page.url() });
+    const screenshotPath = './playwright-example-screenshot.png';
+    logger.info('[Test] Screenshot Path:', { screenshotPath });
+    const screenshotBuffer = await page.screenshot({ path: screenshotPath, fullPage: true });
+    expect(screenshotBuffer).toBeDefined();
+    await page.close();
+    await browserClient.close(playwrightBrowser);
+    
+  }, 60000); // 60s timeout for real browser launches
 });

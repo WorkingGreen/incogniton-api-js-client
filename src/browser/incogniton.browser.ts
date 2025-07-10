@@ -7,6 +7,7 @@ import { logger } from '../utils/logger.js';
 import { LoadingIndicator } from '../utils/loading-indicator.js';
 import type { Browser } from 'puppeteer-core';
 import  delay from '../utils/delay.js';
+import type * as Playwright from 'playwright-core';
 
 interface LaunchResponse {
   puppeteerUrl: string;
@@ -61,7 +62,7 @@ export class IncognitonBrowser {
   }
 
   /**
-   * Starts a new browser instance with an automatically created profile
+   * Starts a new browser instance with an automatically created profile (Puppeteer)
    * @param name `Optional` sets the name for profile
    * @param generalInfo `Optional` additional profile information like Notes, Browser OS, etc
    * @returns A connected Puppeteer browser instance
@@ -88,8 +89,8 @@ export class IncognitonBrowser {
       // Update config with new profile ID
       this.config.profileId = profile_browser_id;
 
-      // Start browser with new profile
-      return this.start();
+      // Start browser with new profile (default: Puppeteer)
+      return this.startPuppeteer();
     } catch (error) {
       logger.error('Error in quickstart:', error);
       if (error instanceof Error) {
@@ -100,62 +101,113 @@ export class IncognitonBrowser {
   }
 
   /**
-   * Starts a new Incogniton browser instance with the specified configuration and profile
+   * Starts a new Incogniton browser instance using Puppeteer
    * @param {string} [profileId] Profile ID to use instead of the one in config (optional)
    * @returns A connected Puppeteer browser instance
    * @throws Error if browser launch fails
    */
-  async start(profileId?: string): Promise<Browser> {
+  async startPuppeteer(profileId?: string): Promise<import('puppeteer-core').Browser> {
     try {
       await this.ensurePuppeteer();
-      
       const launchUrl = `/automation/launch/puppeteer`;
       const requestBody = {
         profileID: profileId || this.config.profileId,
         customArgs: this.config.headless ? '--headless=new' : this.config.customArgs || '',
       };
-      // Make a POST request with body data using HttpAgentBuilder
       const response = await this.httpAgent
         .post(launchUrl)
         .set('Content-Type', 'application/json')
         .setBody(requestBody)
         .do(this.config.launchTimeout);
-
       const data = response as LaunchResponse;
       logger.info('Browser launch response:', data);
       const { puppeteerUrl } = data;
-
-      // Wait for the browser to launch
       const loadingIndicator = new LoadingIndicator();
       loadingIndicator.start('Launching Incogniton browser...this may take a few seconds.');
-      // Wait for the browser to be ready
       await delay(this.config.launchTimeout);
       loadingIndicator.stop();
-
-      // Connect to browser
       const browser = await puppeteer.connect({
         browserURL: puppeteerUrl,
         ignoreHTTPSErrors: true,
       });
-
-      logger.success(`${this.config.headless ? 'Browser' : 'Headless Browser'} connected!\n\n`);
+      logger.success(`${this.config.headless ? 'Browser' : 'Headless Browser'} connected via Puppeteer!\n\n`);
       logger.info('Press Ctrl+C to stop the browser.');
-      
-      // Remove existing SIGINT handlers to prevent duplicates
       process.removeAllListeners('SIGINT');
-      
-      // Setup SIGINT handler for graceful shutdown using once
       process.once('SIGINT', async () => {
         logger.info('Closing browser...');
         await this.close(browser);
         process.exit(0);
       });
-
       return browser;
     } catch (error) {
-      logger.error('Error starting Incogniton session:', error);
+      logger.error('Error starting Incogniton session (Puppeteer):', error);
       if (error instanceof Error) {
-        throw new Error(`Failed to start browser: ${error.message}`);
+        throw new Error(`Failed to start browser (Puppeteer): ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Ensures playwright-core is available and imported
+   * @private
+   */
+  private _playwright: typeof import('playwright-core') | undefined;
+  
+  private async ensurePlaywright() {
+    if (!this._playwright) {
+      try {
+        this._playwright = await import('playwright-core');
+      } catch (err) {
+        logger.error('Missing peer dependency: playwright-core is required for Playwright automation features');
+        throw new Error('Missing peer dependency: playwright-core is required for Playwright automation features');
+      }
+    }
+    return this._playwright;
+  }
+
+  /**
+   * Starts a new Incogniton browser instance using Playwright
+   * @param {string} [profileId] Profile ID to use instead of the one in config (optional)
+   * @returns A connected Playwright browser instance
+   * @throws Error if browser launch fails
+   */
+  async startPlaywright(profileId?: string): Promise<import('playwright-core').Browser> {
+    try {
+      const playwright = await this.ensurePlaywright();
+      const launchUrl = `/automation/launch/puppeteer`;
+      const requestBody = {
+        profileID: profileId || this.config.profileId,
+        customArgs: this.config.headless ? '--headless=new' : this.config.customArgs || '',
+      };
+      const response = await this.httpAgent
+        .post(launchUrl)
+        .set('Content-Type', 'application/json')
+        .setBody(requestBody)
+        .do(this.config.launchTimeout);
+      const data = response as LaunchResponse;
+      logger.info('Browser launch response:', data);
+      const { puppeteerUrl } = data;
+      const loadingIndicator = new LoadingIndicator();
+      loadingIndicator.start('Launching Incogniton browser...this may take a few seconds.');
+      await delay(this.config.launchTimeout);
+      loadingIndicator.stop();
+      
+      // Playwright expects ws:// or http:// endpoint for connectOverCDP
+      const browser = await playwright.chromium.connectOverCDP(puppeteerUrl);
+      logger.success(`${this.config.headless ? 'Browser' : 'Headless Browser'} connected via Playwright!\n\n`);
+      logger.info('Press Ctrl+C to stop the browser.');
+      process.removeAllListeners('SIGINT');
+      process.once('SIGINT', async () => {
+        logger.info('Closing browser...');
+        await this.close(browser);
+        process.exit(0);
+      });
+      return browser;
+    } catch (error) {
+      logger.error('Error starting Incogniton session (Playwright):', error);
+      if (error instanceof Error) {
+        throw new Error(`Failed to start browser (Playwright): ${error.message}`);
       }
       throw error;
     }
@@ -213,13 +265,18 @@ export class IncognitonBrowser {
   }
 
   /**
-   * Closes the browser instance
-   * @param browser The Puppeteer browser instance to close
+   * Closes the browser instance (supports both Puppeteer and Playwright)
+   * @param browser The Puppeteer or Playwright browser instance to close
    */
-  async close(browser: Browser): Promise<void> {
+  async close(browser: import('puppeteer-core').Browser | import('playwright-core').Browser): Promise<void> {
     try {
-      await browser.close();
-      logger.info('Browser closed successfully');
+      // Type guard: Playwright Browser has 'isConnected' and 'newContext', Puppeteer has 'process'
+      if (typeof (browser as any).close === 'function') {
+        await browser.close();
+        logger.info('Browser closed successfully');
+      } else {
+        logger.error('Unknown browser instance type, cannot close');
+      }
     } catch (error) {
       logger.error('Failed to close browser:', error);
       if (error instanceof Error) {

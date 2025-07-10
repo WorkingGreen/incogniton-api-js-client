@@ -1,6 +1,6 @@
 {
   "name": "incogniton",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "TypeScript-supported JS client library for the Incogniton API, featuring browser automation capabilities",
   "author": "Yusuf Abdulhafeez @ Incogniton",
   "type": "module",
@@ -21,7 +21,7 @@
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
     "start": "node --no-warnings=ExperimentalWarning ./dist/index.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "lint": "eslint src --fix",
@@ -35,9 +35,11 @@
     "browser",
     "automation",
     "api",
-    "client",
+    "nodejs",
+    "sdk",
     "typescript",
     "puppeteer",
+    "playwright",
     "selenium"
   ],
   "license": "MIT",
@@ -46,6 +48,7 @@
     "qs": "^6.14.0"
   },
   "peerDependencies": {
+    "playwright-core": "^1.53.2",
     "puppeteer-core": "^22.0.0"
   },
   "devDependencies": {
@@ -70,10 +73,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rens23/incogniton-api-js-client.git"
+    "url": "git+https://github.com/WorkingGreen/incogniton-api-js-client.git"
   },
   "bugs": {
-    "url": "https://github.com/rens23/incogniton-api-js-client/issues"
+    "url": "https://github.com/WorkingGreen/incogniton-api-js-client/issues"
   },
-  "homepage": "https://github.com/rens23/incogniton-api-js-client#readme"
+  "homepage": "https://github.com/WorkingGreen/incogniton-api-js-client#readme"
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.15] - 2024-03-26
+
+### Changed
+- Updated repository URL to reflect the new public repository URL
+
 ## [1.0.14] - 2024-05-21
 
 ### Changed

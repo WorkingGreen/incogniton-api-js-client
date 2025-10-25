@@ -142,22 +142,13 @@ export class RequestWrapper<T extends object> {
    * Runs the API request and handles errors.
    * @param timeout timeout for request in seconds
    */
-  async do<R = any>(timeout = 20): Promise<R> {
+  async do<R = any>(timeout = 60): Promise<R> {
     await Promise.all(this.asyncActions.map(action => action()));
 
     // Handle form URL encoded data
     if (this.useFormUrlEncoded && this.request.data && typeof this.request.data === 'object') {
       this.request.data = qs.stringify(this.request.data);
     }
-
-    // Log complete request details
-    // console.log('Request Details:', {
-    //   url: this.request.url,
-    //   method: this.request.method,
-    //   headers: this.request.headers,
-    //   data: this.request.data,
-    //   params: this.request.params
-    // });
 
     try {
       const response = await this.instance({

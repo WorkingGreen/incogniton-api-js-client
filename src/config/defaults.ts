@@ -10,7 +10,7 @@ export const defaults = {
 
   /**
    * Default timeout for API requests in milliseconds
-   * @default 15000
+   * @default 60000
    */
-  timeout: 15000,
+  timeout: 60000,
 } as const;

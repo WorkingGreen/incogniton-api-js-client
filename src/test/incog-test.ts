@@ -12,7 +12,7 @@ const addProfileEntry = {
       profile_group: 'Test Group',
       profile_last_edited: new Date().toISOString(),
       simulated_operating_system: 'Windows',
-      profile_browser_version: '120',
+  profile_browser_version: '140',
     },
     Proxy: {
       connection_type: 'http',
@@ -41,7 +41,7 @@ async function testStartBrowser() {
   try {
     const incognitonBrowser = new IncognitonBrowser({
       profileId: 'b2f707c5-924e-428e-8bf9-502781074c6e',
-      headless: false,
+      headless: true,
     });
 
     logger.info('Starting browser...');
@@ -69,7 +69,7 @@ async function testFingerprinting(browser: any) {
   try {
     const incognitonBrowser = new IncognitonBrowser({
       profileId: 'b2f707c5-924e-428e-8bf9-502781074c6e',
-      headless: false,
+      headless: true,
       launchTimeout: 60000, // Increase timeout to 60 seconds
     });
     const result = await incognitonBrowser.testFingerprint(browser);
@@ -91,7 +91,7 @@ async function testUpdateProfile(profileId: string) {
         profile_browser_id: profileId,
         general_profile_information: {
           profile_name: 'Send Boys',
-          profile_notes: '',
+          profile_notes: '', 
           profile_group: 'Unassigned',
           profile_last_edited: new Date().toISOString(),
           simulated_operating_system: 'Windows'

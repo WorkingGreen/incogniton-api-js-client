@@ -190,6 +190,19 @@ export class IncognitonClient {
     },
 
     /**
+     * Force stop a running browser profile.
+     * @route GET /profile/force-stop/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the profile to force stop
+     * @returns Promise<{ message: string; status: 'ok' }> - Force stop confirmation
+     */
+    forceStop: async (id: ProfileId): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/profile/force-stop/${id}`)
+        .set('Content-Type', 'application/json')
+        .do();
+    },
+
+    /**
      * Deletes a browser profile by its ID.
      * @route GET /profile/delete/{profile_id}
      * @param {ProfileId} id - Unique identifier of the profile to delete

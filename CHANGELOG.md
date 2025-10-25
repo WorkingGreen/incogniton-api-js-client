@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.16] - 2025-10-24
+
+### Added
+
+- Added robust CDP readiness polling (`waitForCDP`) with exponential backoff and per-request timeouts to improve browser startup reliability.
+
+### Changed
+
+- Use `BrowserConfig.launchTimeout` as the canonical launch timeout for Playwright/Puppeteer connections.
+- Replaced fixed sleeps with polling for CDP readiness to reduce flakiness when connecting to local Incogniton automation.
+- Made `playwright` a peer dependency (and retained it in devDependencies) so consumers opt-in to the automation runtime; kept `puppeteer-core` as a peer dependency as well.
+
+### Fixed
+
+- Reduced wasted wait cycles in CDP polling by aligning per-request timeouts with polling cadence and introducing backoff logic.
+
 ## [1.0.15] - 2024-03-26
 
 ### Changed

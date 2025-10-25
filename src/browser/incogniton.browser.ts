@@ -8,6 +8,8 @@ import { LoadingIndicator } from '../utils/loading-indicator.js';
 import type { Browser } from 'puppeteer-core';
 import  delay from '../utils/delay.js';
 import type * as Playwright from 'playwright-core';
+import http from 'http';
+import https from 'https';
 
 interface LaunchResponse {
   puppeteerUrl: string;
@@ -54,6 +56,7 @@ export class IncognitonBrowser {
       try {
         puppeteer = await import('puppeteer-core');
       } catch (err) {
+        console.log('❌ [Puppeteer] Missing puppeteer-core dependency:', err);
         logger.error('Missing peer dependency: puppeteer-core is required for browser automation features');
         throw new Error('Missing peer dependency: puppeteer-core is required for browser automation features');
       }
@@ -108,38 +111,64 @@ export class IncognitonBrowser {
    */
   async startPuppeteer(profileId?: string): Promise<import('puppeteer-core').Browser> {
     try {
+      console.log('🚀 [Puppeteer] Starting with profileId:', profileId || this.config.profileId);
+      
       await this.ensurePuppeteer();
+
       const launchUrl = `/automation/launch/puppeteer`;
       const requestBody = {
         profileID: profileId || this.config.profileId,
         customArgs: this.config.headless ? '--headless=new' : this.config.customArgs || '',
       };
+      
+      console.log('🌐 [Puppeteer] API request to:', launchUrl, 'timeout:', this.config.launchTimeout);
+
       const response = await this.httpAgent
         .post(launchUrl)
         .set('Content-Type', 'application/json')
         .setBody(requestBody)
         .do(this.config.launchTimeout);
+      
       const data = response as LaunchResponse;
-      logger.info('Browser launch response:', data);
       const { puppeteerUrl } = data;
+      
+      if (!puppeteerUrl) {
+        throw new Error('No puppeteerUrl received from API response');
+      }
+
+      console.log('🔗 [Puppeteer] Got puppeteerUrl:', puppeteerUrl);
+
       const loadingIndicator = new LoadingIndicator();
       loadingIndicator.start('Launching Incogniton browser...this may take a few seconds.');
-      await delay(this.config.launchTimeout);
-      loadingIndicator.stop();
+
+      // Wait for the browser CDP endpoint to be ready instead of a fixed sleep
+      try {
+        await this.waitForCDP(puppeteerUrl, this.config.launchTimeout, 1500);
+      } finally {
+        loadingIndicator.stop();
+      }
+
+      console.log('🔌 [Puppeteer] Connecting to browser...');
       const browser = await puppeteer.connect({
         browserURL: puppeteerUrl,
         ignoreHTTPSErrors: true,
       });
+      
+      console.log('✅ [Puppeteer] Connected successfully');
+      
       logger.success(`${this.config.headless ? 'Browser' : 'Headless Browser'} connected via Puppeteer!\n\n`);
       logger.info('Press Ctrl+C to stop the browser.');
+      
       process.removeAllListeners('SIGINT');
       process.once('SIGINT', async () => {
         logger.info('Closing browser...');
         await this.close(browser);
         process.exit(0);
       });
+      
       return browser;
     } catch (error) {
+      console.log('❌ [Puppeteer] FAILED:', error instanceof Error ? error.message : error);
       logger.error('Error starting Incogniton session (Puppeteer):', error);
       if (error instanceof Error) {
         throw new Error(`Failed to start browser (Puppeteer): ${error.message}`);
@@ -159,6 +188,7 @@ export class IncognitonBrowser {
       try {
         this._playwright = await import('playwright-core');
       } catch (err) {
+        console.log('❌ [Playwright] Missing playwright-core dependency:', err);
         logger.error('Missing peer dependency: playwright-core is required for Playwright automation features');
         throw new Error('Missing peer dependency: playwright-core is required for Playwright automation features');
       }
@@ -174,37 +204,62 @@ export class IncognitonBrowser {
    */
   async startPlaywright(profileId?: string): Promise<import('playwright-core').Browser> {
     try {
+      console.log('🚀 [Playwright] Starting with profileId:', profileId || this.config.profileId);
+      
       const playwright = await this.ensurePlaywright();
+
       const launchUrl = `/automation/launch/puppeteer`;
       const requestBody = {
         profileID: profileId || this.config.profileId,
         customArgs: this.config.headless ? '--headless=new' : this.config.customArgs || '',
       };
+      
+      console.log('🌐 [Playwright] API request to:', launchUrl, 'timeout:', this.config.launchTimeout);
+
       const response = await this.httpAgent
         .post(launchUrl)
         .set('Content-Type', 'application/json')
         .setBody(requestBody)
         .do(this.config.launchTimeout);
+      
       const data = response as LaunchResponse;
-      logger.info('Browser launch response:', data);
       const { puppeteerUrl } = data;
+      
+      if (!puppeteerUrl) {
+        throw new Error('No puppeteerUrl received from API response');
+      }
+
+      console.log('🔗 [Playwright] Got puppeteerUrl:', puppeteerUrl);
+
       const loadingIndicator = new LoadingIndicator();
       loadingIndicator.start('Launching Incogniton browser...this may take a few seconds.');
-      await delay(this.config.launchTimeout);
-      loadingIndicator.stop();
-      
+
+      // Wait for the browser CDP endpoint to be ready instead of a fixed sleep
+      try {
+        await this.waitForCDP(puppeteerUrl, this.config.launchTimeout, 1500);
+      } finally {
+        loadingIndicator.stop();
+      }
+
+      console.log('🔌 [Playwright] Connecting to browser...');
       // Playwright expects ws:// or http:// endpoint for connectOverCDP
       const browser = await playwright.chromium.connectOverCDP(puppeteerUrl);
+      
+      console.log('✅ [Playwright] Connected successfully');
+      
       logger.success(`${this.config.headless ? 'Browser' : 'Headless Browser'} connected via Playwright!\n\n`);
       logger.info('Press Ctrl+C to stop the browser.');
+      
       process.removeAllListeners('SIGINT');
       process.once('SIGINT', async () => {
         logger.info('Closing browser...');
         await this.close(browser);
         process.exit(0);
       });
+      
       return browser;
     } catch (error) {
+      console.log('❌ [Playwright] FAILED:', error instanceof Error ? error.message : error);
       logger.error('Error starting Incogniton session (Playwright):', error);
       if (error instanceof Error) {
         throw new Error(`Failed to start browser (Playwright): ${error.message}`);
@@ -284,5 +339,72 @@ export class IncognitonBrowser {
       }
       throw error;
     }
+  }
+
+  /**
+   * Polls the browser CDP endpoint (/json/version) until it becomes available or a timeout occurs.
+   * This avoids using fixed delays and makes connecting more reliable.
+   * @param url The base puppeteer/CDP url returned by Incogniton (e.g. http://127.0.0.1:XXXXX)
+  * @param timeoutMs Maximum time to wait in milliseconds (default 60s)
+   * @param intervalMs Poll interval in milliseconds (default 1500)
+   */
+  private async waitForCDP(url: string, timeoutMs = 60000, intervalMs = 1500): Promise<void> {
+    const endpoint = `${url.replace(/\/$/, '')}/json/version`;
+    const deadline = Date.now() + timeoutMs;
+
+    const isHttp = endpoint.startsWith('http://');
+
+    // Exponential backoff parameters
+    const maxIntervalMs = 2000; // don't back off beyond this
+    let currentInterval = Math.max(200, intervalMs);
+    let attempt = 0;
+
+    while (Date.now() < deadline) {
+      attempt++;
+      // Make per-request timeout slightly shorter than the interval to avoid serial waits
+      const perRequestTimeout = Math.max(150, Math.min(1000, currentInterval - 100));
+
+      const start = Date.now();
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const lib = isHttp ? http : https;
+          const req = lib.get(endpoint, (res) => {
+            if (res.statusCode === 200) {
+              res.resume();
+              resolve();
+            } else {
+              res.resume();
+              reject(new Error(`CDP not ready, status ${res.statusCode}`));
+            }
+          });
+
+          req.on('error', (err) => {
+            reject(err);
+          });
+
+          // per-request safety timeout
+          req.setTimeout(perRequestTimeout, () => {
+            req.destroy(new Error('Request timed out'));
+          });
+        });
+
+        // success
+        return;
+      } catch (err) {
+        // ignore and continue to backoff
+      }
+
+      const elapsed = Date.now() - start;
+      // Sleep the remainder of the interval (if any) to keep cadence predictable
+      const sleepMs = Math.max(0, currentInterval - elapsed);
+      if (sleepMs > 0) await delay(sleepMs);
+
+      // Backoff: increase interval after the first few attempts
+      if (attempt >= 3) {
+        currentInterval = Math.min(maxIntervalMs, currentInterval * 2);
+      }
+    }
+
+    throw new Error(`CDP endpoint did not become ready within ${timeoutMs}ms: ${endpoint}`);
   }
 }

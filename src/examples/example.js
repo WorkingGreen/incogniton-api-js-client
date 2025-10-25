@@ -23,7 +23,7 @@ async function runExamples() {
                     profile_group: 'Example Group',
                     profile_last_edited: new Date().toISOString(),
                     simulated_operating_system: 'Windows',
-                    profile_browser_version: '120',
+                    profile_browser_version: '140',
                     browser_id: '',
                 },
                 Proxy: {

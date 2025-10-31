@@ -1,6 +1,6 @@
 {
   "name": "incogniton",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "TypeScript-supported JS client library for the Incogniton API, featuring browser automation capabilities",
   "author": "Yusuf Abdulhafeez @ Incogniton",
   "type": "module",

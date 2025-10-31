@@ -14,25 +14,26 @@ import { InitHttpAgent } from '../utils/http/provider.js';
 
 export class IncognitonClient {
   private readonly httpAgent: HttpAgentBuilder;
-  private readonly timeout: number;
+  private readonly timeout?: number;
 
   /**
    * Creates a new Incogniton API client instance
    * @param baseUrl `optional` Base URL for the Incogniton API:
    * - If not provided, defaults to http://localhost:35000
    * - Can be overridden by `INCOGNITON_API_URL` environment variable
+  * @param timeout `optional` Sets requests timeout in seconds. Defaults to 60 secs.
    * 
    * @example
    * ```typescript
    * const client = new IncognitonClient();
    * ```
    * 
-   * @note For browser automation with Puppeteer integration, use the `{ IncognitonBrowser }` module
+   * @note For brows per automation with Puppeteer integration, use the `{ IncognitonBrowser }` module
    * which provides a higher-level interface for managing browser instances.
    */
-  constructor(baseUrl?: string) {
+  constructor(baseUrl?: string, timeout?: number) {
     this.httpAgent = InitHttpAgent('incogniton-client', baseUrl || defaults.baseUrl);
-    this.timeout = defaults.timeout / 1000; // Convert milliseconds to seconds
+    this.timeout = timeout;
   }
 
   /**
@@ -45,7 +46,7 @@ export class IncognitonClient {
      * @returns Promise<{ profiles: BrowserProfile[]; status: 'ok' }> - List of browser profiles
      */
     list: async (): Promise<{ profiles: BrowserProfile[]; status: 'ok' }> => {
-      return this.httpAgent.get('/profile/all').set('Content-Type', 'application/json').do();
+  return this.httpAgent.get('/profile/all').set('Content-Type', 'application/json').do(this.timeout);
     },
 
     /**
@@ -55,7 +56,7 @@ export class IncognitonClient {
      * @returns Promise<{ profileData: BrowserProfile; status: 'ok' }> - Profile details
      */
     get: async (id: ProfileId): Promise<{ profileData: BrowserProfile; status: 'ok' }> => {
-      return this.httpAgent.get(`/profile/get/${id}`).set('Content-Type', 'application/json').do();
+  return this.httpAgent.get(`/profile/get/${id}`).set('Content-Type', 'application/json').do(this.timeout);
     },
 
     /**
@@ -79,8 +80,8 @@ export class IncognitonClient {
       return this.httpAgent
         .post('/profile/add')
         .setBody(formData)
-        .toFormUrlEncoded()
-        .do();
+  .toFormUrlEncoded()
+  .do(this.timeout);
     },
 
     /**
@@ -109,7 +110,7 @@ export class IncognitonClient {
         .post('/profile/update')
         .setBody(formData)
         .toFormUrlEncoded()
-        .do();
+        .do(this.timeout);
     },
 
     /**
@@ -137,7 +138,7 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/profile/launch/${id}`)
         .set('Content-Type', 'application/json')
-        .do();
+        .do(this.timeout);
     },
 
     /**
@@ -150,7 +151,7 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/profile/launch/${id}/force/local`)
         .set('Content-Type', 'application/json')
-        .do();
+        .do(this.timeout);
     },
 
     /**
@@ -163,7 +164,7 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/profile/status/${id}`)
         .set('Content-Type', 'application/json')
-        .do();
+        .do(this.timeout);
     },
 
     /**
@@ -176,7 +177,7 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/profile/launch/${id}/force/cloud`)
         .set('Content-Type', 'application/json')
-        .do();
+        .do(this.timeout);
     },
 
     /**
@@ -186,7 +187,7 @@ export class IncognitonClient {
      * @returns Promise<{ message: string; status: 'ok' }> - Stop confirmation
      */
     stop: async (id: ProfileId): Promise<{ message: string; status: 'ok' }> => {
-      return this.httpAgent.get(`/profile/stop/${id}`).set('Content-Type', 'application/json').do();
+  return this.httpAgent.get(`/profile/stop/${id}`).set('Content-Type', 'application/json').do(this.timeout);
     },
 
     /**
@@ -199,7 +200,7 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/profile/force-stop/${id}`)
         .set('Content-Type', 'application/json')
-        .do();
+        .do(this.timeout);
     },
 
     /**
@@ -212,7 +213,7 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/profile/delete/${id}`)
         .set('Content-Type', 'application/json')
-        .do();
+        .do(this.timeout);
     },
   };
 
@@ -232,7 +233,7 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/profile/cookie/${profileId}`)
         .set('Content-Type', 'application/json')
-        .do();
+        .do(this.timeout);
     },
 
     /**
@@ -265,10 +266,10 @@ export class IncognitonClient {
       };
 
       return this.httpAgent
-        .post('/profile/addCookie')
-        .set('Content-Type', 'application/json')
-        .setBody(requestData)
-        .do();
+  .post('/profile/addCookie')
+  .set('Content-Type', 'application/json')
+  .setBody(requestData)
+  .do(this.timeout);
     },
 
     /**
@@ -281,7 +282,7 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/profile/deleteCookie/${profileId}`)
         .set('Content-Type', 'application/json')
-        .do();
+        .do(this.timeout);
     },
   };
 
@@ -301,7 +302,7 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/automation/launch/puppeteer/${profileId}`)
         .set('Content-Type', 'application/json')
-        .do();
+        .do(this.timeout);
     },
 
     /**
@@ -319,7 +320,7 @@ export class IncognitonClient {
         .post('/automation/launch/puppeteer')
         .set('Content-Type', 'application/json')
         .setBody({ profileID: profileId, customArgs })
-        .do();
+        .do(this.timeout);
     },
 
     /**
@@ -332,7 +333,7 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/automation/launch/python/${profileId}`)
         .set('Content-Type', 'application/json')
-        .do();
+        .do(this.timeout);
     },
 
     /**
@@ -350,7 +351,7 @@ export class IncognitonClient {
         .post(`/automation/launch/python/${profileId}/`)
         .set('Content-Type', 'application/json')
         .setBody({ customArgs })
-        .do();
+        .do(this.timeout);
     },
   };
 }

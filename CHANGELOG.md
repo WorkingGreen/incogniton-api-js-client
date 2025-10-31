@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.17] - 2025-10-31
+
+### Changed
+
+- All SDK HTTP requests now use a 60s default timeout.
+Can be customized when instantiating the client or on individual calls.
+
 ## [1.0.16] - 2025-10-24
 
 ### Added

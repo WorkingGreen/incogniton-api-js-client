@@ -40,7 +40,7 @@ export class IncognitonBrowser {
     this.config = {
       headless: true,
       port: 35000,
-      launchTimeout: 35000,
+      launchTimeout: 60000,
       ...config,
     };
     this.client = new IncognitonClient();

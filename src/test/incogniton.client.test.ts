@@ -1,5 +1,5 @@
 // Allow longer timeouts for integration/browser tests
-jest.setTimeout(60000);
+jest.setTimeout(120000);
 
 import { IncognitonClient } from '../api/incogniton.client.js';
 import { logger } from '../utils/logger.js';
@@ -99,25 +99,21 @@ describe('IncognitonBrowser - Puppeteer Launch', () => {
     client = new IncognitonClient();
   });
 
-  afterEach(async () => {
-    if (profileId) {
-      try {
-        await client.profile.delete(profileId);
-      } catch (error) {
-        logger.error('Failed to cleanup profile:', { error });
-      }
-    }
-  });
+  // No global afterEach cleanup — each test will perform its own close/stop/delete
 
   it('should launch and close browser with Puppeteer', async () => {
     // Step 1: Add a profile
     const profileData = {
       profileData: {
         general_profile_information: {
-          profile_name: 'Test Profile Puppeteer',
-          profile_notes: 'Testing Puppeteer automation',
+          profile_name: 'Test — Unblocked P Automation',
+          profile_notes: 'Testing Unblocked automation',
           simulated_operating_system: 'Windows',
           profile_browser_version: '141',
+        },
+        UnblockedFreeProxySettings: {
+          unblocked_free_proxy_enabled: true,
+          unblocked_free_proxy_country: "us"
         },
       },
     };
@@ -134,15 +130,20 @@ describe('IncognitonBrowser - Puppeteer Launch', () => {
     // Simple automation: open page, screenshot
     const page = await puppeteerBrowser.newPage();
     console.log("🚀 ~ page:", page)
-    await page.goto('https://incogniton.com/', { waitUntil: 'load' });
+    await page.goto('https://incogniton.com/blog');
 
     const screenshotPath = './puppeteer-example-screenshot.png';
     const screenshotBuffer = await page.screenshot({ path: screenshotPath, fullPage: true });
     console.log('[Puppeteer Test] Screenshot Path:', { screenshotPath });
     // expect(screenshotBuffer).toBeDefined();
     await page.close();
+  // Close browser client and stop profile
+  await browserClient.close(puppeteerBrowser);
 
-    await browserClient.close(puppeteerBrowser);
+  await client.profile.forceStop(profileId);
+  // Delete profile and clear id
+  await client.profile.delete(profileId);
+  profileId = '';
     
   });
 });
@@ -157,40 +158,21 @@ describe('IncognitonBrowser - Playwright Launch', () => {
     client = new IncognitonClient();
   });
 
-  afterEach(async () => {
-    try {
-      // Close browser first
-      if (browser) {
-        await browserClient.close(browser);
-        browser = null;
-      }
-      
-      // Force stop profile if it's running
-      if (profileId) {
-        try {
-          await client.profile.forceStop(profileId);
-        } catch (stopError) {
-          // Profile might already be stopped, ignore error
-        }
-        
-        // Delete profile
-        await client.profile.delete(profileId);
-        profileId = '';
-      }
-    } catch (error) {
-      logger.error('Failed to cleanup:', { error });
-    }
-  });
+  // No afterEach here — tests will close browsers and delete profiles themselves.
 
   it('should launch and close browser with Playwright', async () => {
     // Step 1: Add a profile
     const profileData = {
       profileData: {
         general_profile_information: {
-          profile_name: 'Test Profile Playwright',
+          profile_name: 'Test — Unblocked Playwright',
           profile_notes: 'Testing Playwright automation',
           simulated_operating_system: 'Windows',
           profile_browser_version: '141',
+        },
+        UnblockedFreeProxySettings: {
+          unblocked_free_proxy_enabled: true,
+          unblocked_free_proxy_country: "de"
         },
       },
     };
@@ -215,8 +197,12 @@ describe('IncognitonBrowser - Playwright Launch', () => {
     const screenshotBuffer = await page.screenshot({ path: screenshotPath, fullPage: true });
     expect(screenshotBuffer).toBeDefined();
     await page.close();
-
-    // Browser will be closed in afterEach
+  await client.profile.forceStop(profileId);
+  // Close the browser connection and delete profile
+  await browserClient.close(browser);
+  browser = null;
+  await client.profile.delete(profileId);
+  profileId = '';
     
   });
 });

@@ -1,6 +1,6 @@
-# Incogniton API Client (JS/TS)
+# Incogniton Typescript SDK
 
-The official JavaScript / TypeScript SDK for interacting with the [Incogniton Antidetect Browser API](https://api-docs.incogniton.com/) and browser automation capabilities. Visit our [official website](https://incogniton.com) to learn more about Incogniton.
+The official JavaScript / TypeScript SDK for interacting with the [Incogniton Antidetect Browser API](https://api-docs.incogniton.com/) and browser automation capabilities, including Playwright, Puppeteer, and Selenium. Visit our [official website](https://incogniton.com) to learn more about Incogniton.
 
 ## Overview
 

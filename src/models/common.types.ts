@@ -86,9 +86,9 @@ export interface WebRTC {
 /** Browser navigator settings for fingerprint consistency */
 export interface Navigator {
   /** User-Agent string to report */
-  user_agent: string;
+  user_agent?: string;
   /** Screen resolution in WIDTHxHEIGHT format */
-  screen_resolution: string;
+  screen_resolution?: string;
   /** Whether to match User-Agent with Chrome core version */
   navigator_useragent_match_chrome_core?: boolean;
   /** Comma-separated list of language codes */
@@ -96,7 +96,7 @@ export interface Navigator {
   /** Whether to toggle language based on IP */
   navigator_languageIPToggle?: number;
   /** Platform to report (e.g., Win32, MacIntel) */
-  platform: string;
+  platform?: string;
   /** Whether to enable Do Not Track setting */
   do_not_track?: boolean;
   /** Number of logical processor cores to simulate */

@@ -16,6 +16,10 @@ export interface GeneralProfileInformation {
   profile_browser_version?: string;
 }
 
+webgl{
+  webgl->noise<True>
+  canvas->noise<True>
+}
 /**
  * Represents proxy configuration for a browser profile.
  */

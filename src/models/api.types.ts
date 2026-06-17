@@ -1,87 +1,29 @@
 /**
  * @module models/api
+ *
+ * Backwards-compatible re-export surface. The canonical request/response types
+ * live in `common.types.ts` (the shapes the client actually sends and receives);
+ * this module re-exports them so existing `models/api.types` import paths keep
+ * working, and adds the browser-automation config type.
  */
 
-import type {
-  CreateBrowserProfileRequest as BrowserProfileRequest,
-  UpdateBrowserProfileRequest as BrowserProfileUpdateRequest,
+export type {
+  ApiResponse,
+  ApiError,
+  BaseResponse,
+  CreateBrowserProfileRequest,
+  UpdateBrowserProfileRequest,
+  GetCookieResponse,
+  AddCookieRequest,
+  Cookie,
   ProfileStatus,
-} from './browser-profile.types.js';
-import type { BaseResponse } from './common.types.js';
-
-export interface ApiResponse<T> extends BaseResponse {
-  data: T;
-}
-
-export interface ApiError extends BaseResponse {
-  error: string;
-}
+  PuppeteerLaunchResponse,
+  SeleniumLaunchResponse,
+} from './common.types.js';
 
 /**
- * Re-export browser profile types with descriptive names
+ * Configuration for {@link IncognitonBrowser}.
  */
-export type CreateBrowserProfileRequest = BrowserProfileRequest;
-export type UpdateBrowserProfileRequest = BrowserProfileUpdateRequest;
-
-/**
- * Response type for getting a cookie
- */
-export interface GetCookieResponse extends BaseResponse {
-  data: {
-    id: string;
-    name: string;
-    value: string;
-    domain: string;
-    path: string;
-    secure: boolean;
-    httpOnly: boolean;
-    sameSite: string;
-    expires: number;
-  };
-}
-
-/**
- * Request type for adding a cookie
- */
-export interface AddCookieRequest {
-  name: string;
-  value: string;
-  domain: string;
-  path?: string;
-  secure?: boolean;
-  httpOnly?: boolean;
-  sameSite?: string;
-  expires?: number;
-}
-
-/**
- * Response type returned when launching a Puppeteer automation session.
- */
-export interface PuppeteerLaunchResponse extends BaseResponse {
-  data: {
-    puppeteerUrl: string;
-    status: 'ok' | 'error';
-  };
-}
-
-/**
- * Response type returned when launching a Selenium automation session.
- */
-export interface SeleniumLaunchResponse extends BaseResponse {
-  data: {
-    status: 'ok' | 'error';
-  };
-}
-
-/**
- * Response type for proxy switching operation
- */
-export interface SwitchProxyResponse extends BaseResponse {
-  data: {
-    status: 'ok' | 'error';
-  };
-}
-
 export interface BrowserConfig {
   /** The profile ID to use for the browser instance */
   profileId?: string;
@@ -91,6 +33,6 @@ export interface BrowserConfig {
   customArgs?: string;
   /** Port number for the Incogniton instance (default: 35000) */
   port?: number;
-  /** Time to wait for browser launch in milliseconds (default: 30000) */
+  /** Time to wait for browser launch in milliseconds (default: 35000) */
   launchTimeout?: number;
 }

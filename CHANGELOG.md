@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.1.0] - 2026-06-17
+
+### Added
+
+- `client.system` operations: `alive()` (health probe) and `close()` (shut down the Incogniton app).
+- Profile cloning: `client.profile.clone(id, options)` (custom settings) and `client.profile.cloneQuick(id)` (all-defaults).
+- Dry-launch (build a launch without opening a browser): `client.profile.dryLaunch(id)`, `dryLaunchForceLocal`, and `dryLaunchForceCloud`.
+- Automation force-sync launch variants: `launchPuppeteerForceLocal` / `launchPuppeteerForceCloud` and `launchSeleniumForceLocal` / `launchSeleniumForceCloud`.
+- `client.automation.launchSeleniumCustomBody(id, options)` — Selenium custom-args launch with the profile id in the request body.
+- `client.automation.launchCookieRobot(id)` — run the cookie-collection robot.
+- The constructor now accepts an options object: `new IncognitonClient({ baseUrl, timeout, port })`. The optional `port` targets a non-default app port. The legacy positional `(baseUrl, timeout)` signature still works.
+
+### Changed
+
+- `system.alive()` normalizes the server response (JSON-quoted `"OK"` or bare `OK`) to a plain `'OK'` across app versions.
+- Browser launches (`IncognitonBrowser.startPuppeteer` / `startPlaywright`) now poll the CDP endpoint and connect as soon as it's ready, instead of waiting a fixed `launchTimeout` delay — launches return in ~1–2 s instead of always waiting the full timeout.
+- Launching a browser no longer clears the host process's other `SIGINT` handlers.
+- Updated dependencies: `axios` → ^1.18.0, `qs` → ^6.15.2. Bumped the `playwright` / `playwright-core` peer range to ^1.61.0 (`puppeteer-core` peer unchanged at ^22).
+
+### Fixed
+
+- Corrected `GetCookieResponse`: the cookie array is exposed under the key `'CookieData '` (with the trailing space the server actually sends) — reading `res.CookieData` was always `undefined` at runtime.
+- `IncognitonBrowser` passed `launchTimeout` (ms) where the request layer expected seconds, inflating the HTTP timeout 1000×.
+- Puppeteer custom-launch routes now use the trailing-slash path the server registers (`/automation/launch/puppeteer/`).
+- `ProfileStatus` now matches the server's capitalized display names (e.g. `"Ready"`); it was previously lowercase and never matched `getStatus()`.
+
+### Migration notes (no runtime breaks)
+
+- Existing JavaScript scripts run unchanged. The constructor, all existing methods, and their runtime behavior are backward-compatible.
+- TypeScript-only: the exported `BrowserProfile`, `CreateBrowserProfileRequest`, `UpdateBrowserProfileRequest`, `GetCookieResponse`, and `AddCookieRequest` types now match the real API shapes (they previously did not). Code that already matched runtime keeps compiling; code that relied on the old (incorrect) shapes may surface a compile error pointing at a latent bug. The redundant `models/automation.types` and `models/cookies.types` modules were removed (they were never reachable via the package's `exports` map).
+- Playwright users may need to bump `playwright`/`playwright-core` to ^1.61 to satisfy the peer range.
+
 ## [1.0.17] - 2025-10-31
 
 ### Changed

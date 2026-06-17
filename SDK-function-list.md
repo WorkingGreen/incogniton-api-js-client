@@ -4,6 +4,18 @@ Below is a summary of the most commonly used methods and operations available in
 
 ---
 
+## System Operations (`client.system`)
+
+```typescript
+await client.system.alive();
+// Health probe. Returns the string 'OK' when the desktop app is reachable.
+
+await client.system.close();
+// Shut down the Incogniton application.
+```
+
+---
+
 ## Profile Operations (`client.profile`)
 
 ```typescript
@@ -22,6 +34,13 @@ await client.profile.update(profileId, updateRequest);
 await client.profile.switchProxy(profileId, proxy);
 // Update a browser profile's proxy configuration.
 
+await client.profile.clone(profileId, options);
+// Clone a profile with custom settings. `options` is a `CloneProfileOptions`
+// (profileName, targetGroup, cloneCookies, …). Returns the new clone's id.
+
+await client.profile.cloneQuick(profileId);
+// Clone a profile using all-default settings (same name/group, every clone option on).
+
 await client.profile.launch(profileId);
 // Launch a browser profile.
 
@@ -30,6 +49,15 @@ await client.profile.launchForceLocal(profileId);
 
 await client.profile.launchForceCloud(profileId);
 // Force a browser profile to launch in cloud mode.
+
+await client.profile.dryLaunch(profileId);
+// Prepare a launch without opening a browser; returns the built launch command as `arg`.
+
+await client.profile.dryLaunchForceLocal(profileId);
+// Dry-launch, forcing the local copy when out of sync.
+
+await client.profile.dryLaunchForceCloud(profileId);
+// Dry-launch, forcing the cloud copy when out of sync.
 
 await client.profile.getStatus(profileId);
 // Get the current status of a browser profile.
@@ -67,14 +95,33 @@ await client.cookie.delete(profileId);
 await client.automation.launchPuppeteer(profileId);
 // Launch a browser profile with Puppeteer automation.
 
+await client.automation.launchPuppeteerForceLocal(profileId);
+// Launch for Puppeteer, forcing the local copy when out of sync.
+
+await client.automation.launchPuppeteerForceCloud(profileId);
+// Launch for Puppeteer, forcing the cloud copy when out of sync.
+
 await client.automation.launchPuppeteerCustom(profileId, customArgs);
 // Launch a browser profile with Puppeteer automation using custom arguments.
 
 await client.automation.launchSelenium(profileId);
 // Launch a browser profile with Selenium automation.
 
+await client.automation.launchSeleniumForceLocal(profileId);
+// Launch on the Selenium grid, forcing the local copy when out of sync.
+
+await client.automation.launchSeleniumForceCloud(profileId);
+// Launch on the Selenium grid, forcing the cloud copy when out of sync.
+
 await client.automation.launchSeleniumCustom(profileId, customArgs);
-// Launch a browser profile with Selenium automation using custom arguments.
+// Launch with Selenium using custom arguments (profile id in the URL path).
+
+await client.automation.launchSeleniumCustomBody(profileId, options);
+// Launch on the Selenium grid with custom args, profile id in the request body.
+// `options` may set { customArgs, forceLocal, forceCloud }.
+
+await client.automation.launchCookieRobot(profileId);
+// Run the cookie-collection robot on a profile (top-50 sites, 120s timeout, cloud copy).
 ```
 
 ---

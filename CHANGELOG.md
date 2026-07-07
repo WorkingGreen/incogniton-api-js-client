@@ -31,7 +31,7 @@
 ### Added
 
 - `client.system` operations: `alive()` (health probe) and `close()` (shut down the Incogniton app).
-- Profile cloning: `client.profile.clone(id, options)` (custom settings) and `client.profile.cloneQuick(id)` (all-defaults).
+- Profile cloning: `client.profile.clone(id, options?)` — called with no options it performs an all-defaults clone (same name/group, every clone option on); pass a `CloneProfileOptions` to customize.
 - Dry-launch (build a launch without opening a browser): `client.profile.dryLaunch(id)`, `dryLaunchForceLocal`, and `dryLaunchForceCloud`.
 - Automation force-sync launch variants: `launchPuppeteerForceLocal` / `launchPuppeteerForceCloud` and `launchSeleniumForceLocal` / `launchSeleniumForceCloud`.
 - `client.automation.launchSeleniumCustomBody(id, options)` — Selenium custom-args launch with the profile id in the request body.

@@ -34,12 +34,10 @@ await client.profile.update(profileId, updateRequest);
 await client.profile.switchProxy(profileId, proxy);
 // Update a browser profile's proxy configuration.
 
-await client.profile.clone(profileId, options);
-// Clone a profile with custom settings. `options` is a `CloneProfileOptions`
-// (profileName, targetGroup, cloneCookies, …). Returns the new clone's id.
-
-await client.profile.cloneQuick(profileId);
-// Clone a profile using all-default settings (same name/group, every clone option on).
+await client.profile.clone(profileId, options?);
+// Clone a profile. With no `options` it performs an all-defaults clone (same
+// name/group, every clone option on). Pass a `CloneProfileOptions`
+// (profileName, targetGroup, cloneCookies, …) to customize. Returns the new clone's id.
 
 await client.profile.launch(profileId);
 // Launch a browser profile.

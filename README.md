@@ -70,8 +70,9 @@ const profiles = await client.profile.list();
 // Get a specific profile
 const profileDetails = await client.profile.get('PROFILE_ID');
 
-// Clone a profile (all-default settings)
-const clone = await client.profile.cloneQuick('PROFILE_ID');
+// Clone a profile — no options means an all-defaults clone (same name/group, all data).
+// Pass options to customize: client.profile.clone('PROFILE_ID', { profileName: 'Copy' })
+const clone = await client.profile.clone('PROFILE_ID');
 
 // Control a running profile's browser (launch it first)
 await client.profile.launch('PROFILE_ID');

@@ -312,12 +312,27 @@ export class IncognitonClient {
     },
 
     /**
-     * Clones a profile with custom settings.
+     * Clones a profile.
+     *
+     * Called with no options it performs an all-defaults clone (same name and
+     * group as the source, every clone flag on) — the server applies the
+     * defaults for any field left out. Pass a {@link CloneProfileOptions} to
+     * override the name, group, or any individual clone flag.
+     *
      * @route POST /profile/clone
      * @param {ProfileId} id - Browser id of the source profile
-     * @param {CloneProfileOptions} options - Optional clone settings. Omitted
+     * @param {CloneProfileOptions} [options] - Optional clone settings. Omitted
      *   clone flags fall back to the server default (`true` for each).
      * @returns Promise<{ profile_browser_id: string; status: 'ok' }> - The new clone's id
+     *
+     * @example
+     * ```typescript
+     * // All-defaults clone (same name/group, all data copied)
+     * await client.profile.clone('PROFILE_ID');
+     *
+     * // Custom clone
+     * await client.profile.clone('PROFILE_ID', { profileName: 'Copy', cloneCookies: false });
+     * ```
      */
     clone: async (
       id: ProfileId,
@@ -337,21 +352,6 @@ export class IncognitonClient {
         .post('/profile/clone')
         .set('Content-Type', 'application/json')
         .setBody(body)
-        .do(this.timeout);
-    },
-
-    /**
-     * Clones a profile using all-true defaults (same name/group, every clone option on).
-     * @route GET /profile/clone/{profile_id}
-     * @param {ProfileId} id - Browser id of the source profile
-     * @returns Promise<{ profile_browser_id: string; status: 'ok' }> - The new clone's id
-     */
-    cloneQuick: async (
-      id: ProfileId
-    ): Promise<{ profile_browser_id: string; status: 'ok' }> => {
-      return this.httpAgent
-        .get(`/profile/clone/${id}`)
-        .set('Content-Type', 'application/json')
         .do(this.timeout);
     },
 

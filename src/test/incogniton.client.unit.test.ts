@@ -239,14 +239,10 @@ describe('IncognitonClient routing', () => {
       expect(lastCall().body).not.toHaveProperty('clone_useragent');
     });
 
-    it('clone() with no options sends just the source id', async () => {
+    it('clone() with no options POSTs just the source id (all-defaults clone)', async () => {
       await client.profile.clone(ID);
+      expect(lastCall()).toMatchObject({ method: 'POST', endpoint: '/profile/clone' });
       expect(lastCall().body).toEqual({ profile_browser_id: ID });
-    });
-
-    it('cloneQuick() hits GET /profile/clone/{id}', async () => {
-      await client.profile.cloneQuick(ID);
-      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/profile/clone/${ID}` });
     });
 
     it('dryLaunch variants hit the right routes', async () => {

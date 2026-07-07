@@ -306,6 +306,10 @@ async function runControl(suite, client, args, id) {
     skip(suite, 'control.openUrl/navigate/refresh/tabs/activateTab/closeTab', id ? 'use --control (needs build with routes)' : 'no profile');
     return;
   }
+  // The lifecycle set a placeholder proxy via switchProxy; clear it so the browser
+  // can actually reach the network — otherwise navigate() correctly reports the
+  // (dead-proxy) navigation failure and the check fails for the wrong reason.
+  await client.profile.switchProxy(id, { connection_type: '', proxy_url: '' }).catch(() => {});
   const body = await launchWithSync(() => client.profile.launch(id),
     () => client.profile.launchForceLocal(id));
   if (!isOk(body)) {
@@ -325,6 +329,14 @@ async function runControl(suite, client, args, id) {
     return [isOk(r), r.message ?? ''];
   });
   await sleep(1500);
+  // Open a second tab so closeTab has a non-foreground tab to close later.
+  await run(suite, 'control.openUrl() [second tab]', async () => {
+    const r = await client.control.openUrl(id, 'https://example.org');
+    return [isOk(r), r.message ?? ''];
+  });
+  // Let the freshly opened tabs finish loading before navigating — Page.navigate on
+  // a tab whose initial navigation is still in flight is rejected by CDP.
+  await sleep(6000);
   let tabs = [];
   await run(suite, 'control.tabs()', async () => {
     const r = await client.control.tabs(id);

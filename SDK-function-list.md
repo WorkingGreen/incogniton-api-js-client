@@ -74,6 +74,32 @@ await client.profile.delete(profileId);
 
 ---
 
+## Live Browser Control (`client.control`)
+
+These act on an already-running profile — launch it first with `client.profile.launch(profileId)`.
+
+```typescript
+await client.control.openUrl(profileId, 'https://example.com');
+// Open a URL in a running profile (reuses a blank tab if free, else opens a new tab).
+
+await client.control.navigate(profileId, 'https://example.com');
+// Navigate the foreground tab to a URL in place (no new tab).
+
+await client.control.refresh(profileId);
+// Refresh the foreground tab.
+
+await client.control.tabs(profileId);
+// List the open tabs. Returns `{ tabs: BrowserTab[] }` (each tab has targetId, url, title).
+
+await client.control.activateTab(profileId, targetId);
+// Bring a tab to the foreground. `targetId` comes from `control.tabs()`.
+
+await client.control.closeTab(profileId, targetId);
+// Close a tab.
+```
+
+---
+
 ## Cookie Operations (`client.cookie`)
 
 ```typescript

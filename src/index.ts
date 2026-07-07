@@ -25,6 +25,7 @@ export type {
   Navigator,
   Other,
   BrowserProfile,
+  BrowserTab,
   CreateBrowserProfileRequest,
   UpdateBrowserProfileRequest,
   Cookie,

@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.2.0] - 2026-06-30
+
+### Added
+
+- `client.control` — live browser-control operations for an already-running profile, matching the V5 automation API's `control` endpoints:
+  - `control.openUrl(id, url)` — open a URL (reuses a free blank tab, else opens a new one).
+  - `control.navigate(id, url)` — navigate the foreground tab in place.
+  - `control.refresh(id)` — refresh the foreground tab.
+  - `control.tabs(id)` — list open tabs (`{ tabs: BrowserTab[] }`, each with `targetId` / `url` / `title`).
+  - `control.activateTab(id, targetId)` / `control.closeTab(id, targetId)` — bring a tab to the foreground / close it.
+- Exported the new `BrowserTab` type.
+
+### Tests
+
+- Unit test (`incogniton.client.unit.test.ts`) now asserts the route, verb, and body for **every** client method (system, profile CRUD + lifecycle, cookie, control, and all automation launch variants) — runs without a live app.
+- Live smoke test (`tools/automation-api-smoke-test.mjs`) now covers the `control` routes: safe error-path checks for all six, plus an opt-in `--control` flag that launches Chrome and drives open/navigate/refresh/list-activate-close-tabs over CDP. On a build that predates the control routes the checks skip cleanly (detected via the router's "Not found" envelope) instead of failing.
+
+### Fixed
+
+- `client.profile.list()` now targets `GET /profile/all/` (the trailing slash is part of the registered V5 route) and returns the profile array under `profileData` — the real wire key. The previous `/profile/all` path and `profiles` key did not match the server (`res.profiles` was always `undefined` at runtime — same bug class as the earlier `CookieData` fix).
+
+### Migration notes
+
+- JavaScript scripts run unchanged.
+- TypeScript-only: `profile.list()` now returns `{ profileData: BrowserProfile[]; status }` instead of `{ profiles: ... }`. Read `res.profileData` (this is what the server has always actually sent).
+
 ## [1.1.0] - 2026-06-17
 
 ### Added

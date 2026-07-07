@@ -1,6 +1,7 @@
 import { defaults } from '../config/defaults.js';
 import {
   BrowserProfile,
+  BrowserTab,
   CreateBrowserProfileRequest,
   UpdateBrowserProfileRequest,
   GetCookieResponse,
@@ -134,11 +135,13 @@ export class IncognitonClient {
   profile = {
     /**
      * Retrieves a list of all browser profiles from the Incogniton server.
-     * @route GET /profile/all
-     * @returns Promise<{ profiles: BrowserProfile[]; status: 'ok' }> - List of browser profiles
+     * @route GET /profile/all/
+     * @returns Promise<{ profileData: BrowserProfile[]; status: 'ok' }> - List of
+     *   browser profiles, under the key `profileData` (the trailing slash on the
+     *   path is part of the registered V5 route).
      */
-    list: async (): Promise<{ profiles: BrowserProfile[]; status: 'ok' }> => {
-  return this.httpAgent.get('/profile/all').set('Content-Type', 'application/json').do(this.timeout);
+    list: async (): Promise<{ profileData: BrowserProfile[]; status: 'ok' }> => {
+  return this.httpAgent.get('/profile/all/').set('Content-Type', 'application/json').do(this.timeout);
     },
 
     /**
@@ -457,6 +460,111 @@ export class IncognitonClient {
       return this.httpAgent
         .get(`/profile/deleteCookie/${profileId}`)
         .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+  };
+
+  /**
+   * Live browser-control operations. Each acts on an already-running profile
+   * (launch it first via {@link IncognitonClient.profile.launch}).
+   */
+  control = {
+    /**
+     * Opens a URL in a running profile's browser, reusing a blank/new tab when
+     * one is free, otherwise opening a new tab.
+     * @route POST /profile/openUrl/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @param {string} url - The URL (or bare host, opened as https://) to open
+     * @returns Promise<{ message: string; status: 'ok' }> - Confirmation
+     */
+    openUrl: async (
+      id: ProfileId,
+      url: string
+    ): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .post(`/profile/openUrl/${id}`)
+        .set('Content-Type', 'application/json')
+        .setBody({ url })
+        .do(this.timeout);
+    },
+
+    /**
+     * Navigates the foreground tab to a URL in place (does not open a new tab).
+     * @route POST /profile/navigate/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @param {string} url - The URL (or bare host) to navigate to
+     * @returns Promise<{ message: string; status: 'ok' }> - Confirmation
+     */
+    navigate: async (
+      id: ProfileId,
+      url: string
+    ): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .post(`/profile/navigate/${id}`)
+        .set('Content-Type', 'application/json')
+        .setBody({ url })
+        .do(this.timeout);
+    },
+
+    /**
+     * Refreshes the foreground tab of a running profile's browser.
+     * @route GET /profile/refresh/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @returns Promise<{ message: string; status: 'ok' }> - Confirmation
+     */
+    refresh: async (id: ProfileId): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/profile/refresh/${id}`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+
+    /**
+     * Lists the open tabs of a running profile's browser.
+     * @route GET /profile/tabs/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @returns Promise<{ tabs: BrowserTab[]; status: 'ok' }> - The open tabs
+     */
+    tabs: async (id: ProfileId): Promise<{ tabs: BrowserTab[]; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/profile/tabs/${id}`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+
+    /**
+     * Brings a tab to the foreground.
+     * @route POST /profile/activateTab/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @param {string} targetId - The tab's targetId (from {@link IncognitonClient.control.tabs})
+     * @returns Promise<{ message: string; status: 'ok' }> - Confirmation
+     */
+    activateTab: async (
+      id: ProfileId,
+      targetId: string
+    ): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .post(`/profile/activateTab/${id}`)
+        .set('Content-Type', 'application/json')
+        .setBody({ targetId })
+        .do(this.timeout);
+    },
+
+    /**
+     * Closes a tab.
+     * @route POST /profile/closeTab/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @param {string} targetId - The tab's targetId (from {@link IncognitonClient.control.tabs})
+     * @returns Promise<{ message: string; status: 'ok' }> - Confirmation
+     */
+    closeTab: async (
+      id: ProfileId,
+      targetId: string
+    ): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .post(`/profile/closeTab/${id}`)
+        .set('Content-Type', 'application/json')
+        .setBody({ targetId })
         .do(this.timeout);
     },
   };

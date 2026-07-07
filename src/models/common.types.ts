@@ -223,6 +223,18 @@ export interface UpdateBrowserProfileRequest {
   };
 }
 
+/**
+ * A single open browser tab, as returned by `GET /profile/tabs/{id}`.
+ */
+export interface BrowserTab {
+  /** CDP target id of the tab — pass to activate/close tab calls. */
+  targetId: string;
+  /** Current URL of the tab. */
+  url: string;
+  /** Current document title of the tab. */
+  title: string;
+}
+
 /** A single cookie as returned by the Incogniton API. */
 export interface Cookie {
   name: string;

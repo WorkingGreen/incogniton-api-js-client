@@ -86,6 +86,147 @@ describe('IncognitonClient routing', () => {
     });
   });
 
+  describe('profile', () => {
+    it('list() hits GET /profile/all/ (trailing slash)', async () => {
+      await client.profile.list();
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: '/profile/all/' });
+    });
+
+    it('get() hits GET /profile/get/{id}', async () => {
+      await client.profile.get(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/profile/get/${ID}` });
+    });
+
+    it('add() POSTs /profile/add with the profile document stringified under profileData', async () => {
+      const profileData = { general_profile_information: { profile_name: 'X' } };
+      await client.profile.add({ profileData });
+      expect(lastCall()).toMatchObject({
+        method: 'POST',
+        endpoint: '/profile/add',
+        body: { profileData: JSON.stringify(profileData) },
+      });
+    });
+
+    it('update() POSTs /profile/update, merging the id into the stringified document', async () => {
+      const proxy = { connection_type: 'HTTP', proxy_url: 'host:1000' };
+      await client.profile.update(ID, { profileData: { Proxy: proxy } });
+      const call = lastCall();
+      expect(call).toMatchObject({ method: 'POST', endpoint: '/profile/update' });
+      expect(JSON.parse((call.body as { profileData: string }).profileData)).toEqual({
+        profile_browser_id: ID,
+        Proxy: proxy,
+      });
+    });
+
+    it('switchProxy() routes through update() to POST /profile/update', async () => {
+      const proxy = { connection_type: 'HTTP', proxy_url: 'host:1000' };
+      await client.profile.switchProxy(ID, proxy);
+      const call = lastCall();
+      expect(call.endpoint).toBe('/profile/update');
+      expect(JSON.parse((call.body as { profileData: string }).profileData)).toEqual({
+        profile_browser_id: ID,
+        Proxy: proxy,
+      });
+    });
+
+    it('launch() and its force variants hit the right routes', async () => {
+      await client.profile.launch(ID);
+      expect(lastCall().endpoint).toBe(`/profile/launch/${ID}`);
+      await client.profile.launchForceLocal(ID);
+      expect(lastCall().endpoint).toBe(`/profile/launch/${ID}/force/local`);
+      await client.profile.launchForceCloud(ID);
+      expect(lastCall().endpoint).toBe(`/profile/launch/${ID}/force/cloud`);
+    });
+
+    it('getStatus() hits GET /profile/status/{id}', async () => {
+      await client.profile.getStatus(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/profile/status/${ID}` });
+    });
+
+    it('stop() and forceStop() hit stop / force-stop', async () => {
+      await client.profile.stop(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/profile/stop/${ID}` });
+      await client.profile.forceStop(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/profile/force-stop/${ID}` });
+    });
+
+    it('delete() hits GET /profile/delete/{id}', async () => {
+      await client.profile.delete(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/profile/delete/${ID}` });
+    });
+  });
+
+  describe('cookie', () => {
+    it('get() hits GET /profile/cookie/{id}', async () => {
+      await client.cookie.get(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/profile/cookie/${ID}` });
+    });
+
+    it('add() POSTs /profile/addCookie with base64json-encoded cookie data', async () => {
+      const cookies = [{ name: 'a', value: 'b', domain: '.example.com' }];
+      await client.cookie.add(ID, cookies);
+      const call = lastCall();
+      expect(call).toMatchObject({ method: 'POST', endpoint: '/profile/addCookie' });
+      const body = call.body as { profile_browser_id: string; format: string; cookie: string };
+      expect(body.profile_browser_id).toBe(ID);
+      expect(body.format).toBe('base64json');
+      expect(Buffer.from(body.cookie, 'base64').toString()).toBe(JSON.stringify(cookies));
+    });
+
+    it('delete() hits GET /profile/deleteCookie/{id}', async () => {
+      await client.cookie.delete(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/profile/deleteCookie/${ID}` });
+    });
+  });
+
+  describe('control', () => {
+    it('openUrl() POSTs /profile/openUrl/{id} with the url in the body', async () => {
+      await client.control.openUrl(ID, 'https://example.com');
+      expect(lastCall()).toMatchObject({
+        method: 'POST',
+        endpoint: `/profile/openUrl/${ID}`,
+        body: { url: 'https://example.com' },
+      });
+    });
+
+    it('navigate() POSTs /profile/navigate/{id} with the url in the body', async () => {
+      await client.control.navigate(ID, 'https://example.com');
+      expect(lastCall()).toMatchObject({
+        method: 'POST',
+        endpoint: `/profile/navigate/${ID}`,
+        body: { url: 'https://example.com' },
+      });
+    });
+
+    it('refresh() hits GET /profile/refresh/{id}', async () => {
+      await client.control.refresh(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/profile/refresh/${ID}` });
+    });
+
+    it('tabs() hits GET /profile/tabs/{id}', async () => {
+      await client.control.tabs(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/profile/tabs/${ID}` });
+    });
+
+    it('activateTab() POSTs /profile/activateTab/{id} with the targetId in the body', async () => {
+      await client.control.activateTab(ID, 'tab-1');
+      expect(lastCall()).toMatchObject({
+        method: 'POST',
+        endpoint: `/profile/activateTab/${ID}`,
+        body: { targetId: 'tab-1' },
+      });
+    });
+
+    it('closeTab() POSTs /profile/closeTab/{id} with the targetId in the body', async () => {
+      await client.control.closeTab(ID, 'tab-1');
+      expect(lastCall()).toMatchObject({
+        method: 'POST',
+        endpoint: `/profile/closeTab/${ID}`,
+        body: { targetId: 'tab-1' },
+      });
+    });
+  });
+
   describe('profile clone / dry-launch', () => {
     it('clone() POSTs /profile/clone with only the provided fields', async () => {
       await client.profile.clone(ID, { profileName: 'Clone A', cloneCookies: false });
@@ -119,6 +260,31 @@ describe('IncognitonClient routing', () => {
   });
 
   describe('automation', () => {
+    it('launchPuppeteer() / launchSelenium() hit the GET launch routes', async () => {
+      await client.automation.launchPuppeteer(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/automation/launch/puppeteer/${ID}` });
+      await client.automation.launchSelenium(ID);
+      expect(lastCall()).toMatchObject({ method: 'GET', endpoint: `/automation/launch/python/${ID}` });
+    });
+
+    it('launchPuppeteerCustom() POSTs /automation/launch/puppeteer/ with profileID + customArgs', async () => {
+      await client.automation.launchPuppeteerCustom(ID, '--foo');
+      expect(lastCall()).toMatchObject({
+        method: 'POST',
+        endpoint: '/automation/launch/puppeteer/',
+        body: { profileID: ID, customArgs: '--foo' },
+      });
+    });
+
+    it('launchSeleniumCustom() POSTs /automation/launch/python/{id}/ with customArgs', async () => {
+      await client.automation.launchSeleniumCustom(ID, '--foo');
+      expect(lastCall()).toMatchObject({
+        method: 'POST',
+        endpoint: `/automation/launch/python/${ID}/`,
+        body: { customArgs: '--foo' },
+      });
+    });
+
     it('puppeteer force variants hit local/cloud routes', async () => {
       await client.automation.launchPuppeteerForceLocal(ID);
       expect(lastCall().endpoint).toBe(`/automation/launch/puppeteer/${ID}/local`);

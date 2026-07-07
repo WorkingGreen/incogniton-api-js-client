@@ -72,6 +72,12 @@ const profileDetails = await client.profile.get('PROFILE_ID');
 
 // Clone a profile (all-default settings)
 const clone = await client.profile.cloneQuick('PROFILE_ID');
+
+// Control a running profile's browser (launch it first)
+await client.profile.launch('PROFILE_ID');
+await client.control.openUrl('PROFILE_ID', 'https://example.com');
+const { tabs } = await client.control.tabs('PROFILE_ID');
+await client.control.activateTab('PROFILE_ID', tabs[0].targetId);
 ```
 
 ### Browser Automation

@@ -13,6 +13,7 @@
  *     node automation-api-smoke-test.mjs --launch              # actually starts + stops Chrome (needs --profile-id)
  *     node automation-api-smoke-test.mjs --puppeteer           # actually starts a Puppeteer session (needs --profile-id)
  *     node automation-api-smoke-test.mjs --selenium            # actually starts a Selenium session via /automation/launch/python (needs --profile-id)
+ *     node automation-api-smoke-test.mjs --control             # launches Chrome + drives open/navigate/refresh/tabs over CDP (needs --profile-id)
  *     node automation-api-smoke-test.mjs --cookie-roundtrip    # export -> delete -> re-import cookies on a real profile (needs --profile-id)
  *     node automation-api-smoke-test.mjs --close-at-end        # invokes /incogniton/close at the very end (will exit V5!)
  *
@@ -137,6 +138,20 @@ function skip(suite, name, reason) {
 
 // ─── Assertion helpers ────────────────────────────────────────────────────────
 
+/**
+ * True when the app's router reports the route isn't registered. The V5 app never
+ * 404s — unknown routes come back as { status: 'error', message: 'Not found: ...' }.
+ * Used to SKIP (not fail) endpoints that a given build predates.
+ */
+function routeNotRegistered(body) {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    typeof body.message === 'string' &&
+    body.message.startsWith('Not found:')
+  );
+}
+
 function assertStatus(body, expected) {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return [false, `expected object, got ${Array.isArray(body) ? 'array' : typeof body}`];
@@ -242,6 +257,36 @@ async function testErrorPaths(suite, base) {
     }
     return [true, ''];
   });
+
+  // Live browser-control endpoints (issue #56) resolve the profile first, so a
+  // missing id returns the not-found envelope without needing a running browser.
+  // These routes are newer than some builds: when the running build predates them
+  // the router returns "Not found: <method> <path>", which we detect and SKIP
+  // (rather than fail) so the suite stays green on older builds.
+  const controlCases = [
+    ['GET', '/profile/refresh/__missing__', undefined, 'GET /profile/refresh/<missing> returns error'],
+    ['GET', '/profile/tabs/__missing__', undefined, 'GET /profile/tabs/<missing> returns error'],
+    ['POST', '/profile/openUrl/__missing__', { url: 'https://example.com' }, 'POST /profile/openUrl/<missing> returns error'],
+    ['POST', '/profile/navigate/__missing__', { url: 'https://example.com' }, 'POST /profile/navigate/<missing> returns error'],
+    ['POST', '/profile/activateTab/__missing__', { targetId: 'x' }, 'POST /profile/activateTab/<missing> returns error'],
+    ['POST', '/profile/closeTab/__missing__', { targetId: 'x' }, 'POST /profile/closeTab/<missing> returns error'],
+  ];
+  for (const [method, path, form, name] of controlCases) {
+    const { body } = await request(method, `${base}${path}`, form ? { form } : {});
+    if (routeNotRegistered(body)) {
+      skip(suite, name, 'control route not present in this build (needs Incogniton >= 5.0.0.5)');
+      continue;
+    }
+    // eslint-disable-next-line no-loop-func
+    await run(suite, name, async () => {
+      const [ok, why] = assertStatus(body, 'error');
+      if (!ok) return [false, why];
+      if (body.message !== 'No profile found with that browser id.') {
+        return [false, `message=${JSON.stringify(body.message)}`];
+      }
+      return [true, ''];
+    });
+  }
 }
 
 async function testReadOnly(suite, base, profileId) {
@@ -561,6 +606,127 @@ async function testSelenium(suite, base, profileId) {
   }
 }
 
+async function testControl(suite, base, profileId) {
+  // Live browser-control endpoints: open/navigate/refresh + list/activate/close tabs.
+  // Drives a real Chrome over CDP, so it launches the profile first and stops it after.
+  // Only runs with --control + --profile-id.
+  console.log(c(BOLD, '\n  Live browser-control tests (Chrome will open!)'));
+  if (!profileId) {
+    skip(suite, 'POST /profile/openUrl/{id}', 'needs --profile-id');
+    skip(suite, 'GET /profile/tabs/{id}', 'needs --profile-id');
+    skip(suite, 'POST /profile/navigate/{id}', 'needs --profile-id');
+    skip(suite, 'GET /profile/refresh/{id}', 'needs --profile-id');
+    skip(suite, 'POST /profile/activateTab/{id}', 'needs --profile-id');
+    skip(suite, 'POST /profile/closeTab/{id}', 'needs --profile-id');
+    return;
+  }
+
+  // Launch the profile so a CDP-controllable browser is running (mirror the
+  // out-of-sync retry the launch endpoint expects).
+  let { body: launchBody } = await request('GET', `${base}/profile/launch/${profileId}`);
+  if (launchBody.status === 'error' && String(launchBody.message ?? '').includes('out of sync')) {
+    ({ body: launchBody } = await request('GET', `${base}/profile/launch/${profileId}/force/local`));
+  }
+  const [launched] = await run(suite, `GET /profile/launch/${profileId} (control prerequisite)`, async () =>
+    assertStatus(launchBody, 'ok'));
+  if (!launched) {
+    skip(suite, 'control ops (openUrl/tabs/navigate/refresh/activateTab/closeTab)', 'launch failed');
+    return;
+  }
+  await sleep(4000); // give the browser time to open its remote-debugging port
+
+  // Guard: if this build predates the control routes, skip them all (and stop the
+  // browser we just launched) instead of emitting a cascade of "Not found" fails.
+  const probe = await request('GET', `${base}/profile/tabs/${profileId}`);
+  if (routeNotRegistered(probe.body)) {
+    skip(suite, 'control ops (openUrl/tabs/navigate/refresh/activateTab/closeTab)',
+      'control routes not present in this build (needs Incogniton >= 5.0.0.5)');
+    await request('GET', `${base}/profile/stop/${profileId}`);
+    return;
+  }
+
+  // openUrl — the first call reuses the initial blank tab.
+  await run(suite, `POST /profile/openUrl/${profileId} opens a URL`, async () => {
+    const { body } = await request('POST', `${base}/profile/openUrl/${profileId}`, { form: { url: 'https://example.com' } });
+    const [ok, why] = assertStatus(body, 'ok');
+    if (!ok) return [false, why];
+    if (body.message !== 'Opened URL') return [false, `message=${JSON.stringify(body.message)}`];
+    return [true, ''];
+  });
+  await sleep(1500);
+
+  // openUrl again — the first tab is no longer blank, so this opens a second tab
+  // (gives closeTab something to close without tearing down the whole browser).
+  await run(suite, `POST /profile/openUrl/${profileId} opens a second tab`, async () => {
+    const { body } = await request('POST', `${base}/profile/openUrl/${profileId}`, { form: { url: 'https://example.org' } });
+    return assertStatus(body, 'ok');
+  });
+  await sleep(1500);
+
+  // tabs — list open tabs and capture their targetIds.
+  let tabs = [];
+  await run(suite, `GET /profile/tabs/${profileId} lists tabs`, async () => {
+    const { body } = await request('GET', `${base}/profile/tabs/${profileId}`);
+    const [ok, why] = assertStatus(body, 'ok');
+    if (!ok) return [false, why];
+    if (!Array.isArray(body.tabs)) return [false, `tabs is not an array: ${typeof body.tabs}`];
+    tabs = body.tabs;
+    return [true, `${tabs.length} tabs`];
+  });
+
+  // navigate the active tab in place.
+  await run(suite, `POST /profile/navigate/${profileId} navigates active tab`, async () => {
+    const { body } = await request('POST', `${base}/profile/navigate/${profileId}`, { form: { url: 'https://example.net' } });
+    const [ok, why] = assertStatus(body, 'ok');
+    if (!ok) return [false, why];
+    if (body.message !== 'Navigated active tab') return [false, `message=${JSON.stringify(body.message)}`];
+    return [true, ''];
+  });
+  await sleep(1000);
+
+  // refresh the active tab.
+  await run(suite, `GET /profile/refresh/${profileId} refreshes active tab`, async () => {
+    const { body } = await request('GET', `${base}/profile/refresh/${profileId}`);
+    const [ok, why] = assertStatus(body, 'ok');
+    if (!ok) return [false, why];
+    if (body.message !== 'Refreshed active tab') return [false, `message=${JSON.stringify(body.message)}`];
+    return [true, ''];
+  });
+
+  // activateTab — bring the first tab to the foreground.
+  if (tabs.length >= 1) {
+    await run(suite, `POST /profile/activateTab/${profileId} activates a tab`, async () => {
+      const { body } = await request('POST', `${base}/profile/activateTab/${profileId}`, { form: { targetId: tabs[0].targetId } });
+      const [ok, why] = assertStatus(body, 'ok');
+      if (!ok) return [false, why];
+      if (body.message !== 'Activated tab') return [false, `message=${JSON.stringify(body.message)}`];
+      return [true, ''];
+    });
+  } else {
+    skip(suite, `POST /profile/activateTab/${profileId}`, 'no tabs to activate');
+  }
+
+  // closeTab — close the last tab (keep >=1 open so the browser stays up for cleanup).
+  if (tabs.length >= 2) {
+    await run(suite, `POST /profile/closeTab/${profileId} closes a tab`, async () => {
+      const { body } = await request('POST', `${base}/profile/closeTab/${profileId}`, { form: { targetId: tabs[tabs.length - 1].targetId } });
+      const [ok, why] = assertStatus(body, 'ok');
+      if (!ok) return [false, why];
+      if (body.message !== 'Closed tab') return [false, `message=${JSON.stringify(body.message)}`];
+      return [true, ''];
+    });
+  } else {
+    skip(suite, `POST /profile/closeTab/${profileId}`, 'need >=2 tabs to close one safely');
+  }
+
+  // Cleanup: stop the browser we launched.
+  await sleep(1000);
+  await run(suite, `GET /profile/stop/${profileId} (clean up control browser)`, async () => {
+    const { body } = await request('GET', `${base}/profile/stop/${profileId}`);
+    return assertStatus(body, 'ok');
+  });
+}
+
 async function testCookieRoundtrip(suite, base, profileId) {
   // End-to-end cookie test against a real profile:
   //   1. Export current cookies (GET /profile/cookie/{id}).
@@ -670,6 +836,7 @@ function listSkipped(suite) {
     ['GET /profile/deleteCookie/{id} (happy path)', 'use --cookie-roundtrip (with --profile-id) - mutates real cookies'],
     ['Selenium launch (happy path) /automation/launch/python/{id} + POST', 'use --selenium (with --profile-id) - spawns Chrome via Selenium grid'],
     ['Cookie robot /automation/cookieRobot/{id}', 'spawns Chrome, crawls top-50 sites for 120s, modifies cookies on the profile'],
+    ['Browser control (openUrl/navigate/refresh/tabs/activateTab/closeTab) happy path', 'use --control (with --profile-id) - launches Chrome and drives it over CDP'],
     ['Puppeteer launch (happy path) GET + POST', 'use --puppeteer (with --profile-id) - actually spawns Chrome'],
     ['/incogniton/close', 'use --close-at-end - terminates V5'],
   ];
@@ -692,6 +859,7 @@ USAGE
     node automation-api-smoke-test.mjs --launch              # actually starts + stops Chrome (needs --profile-id)
     node automation-api-smoke-test.mjs --puppeteer           # actually starts a Puppeteer session (needs --profile-id)
     node automation-api-smoke-test.mjs --selenium            # actually starts a Selenium session (needs --profile-id)
+    node automation-api-smoke-test.mjs --control             # launches Chrome + drives open/navigate/refresh/tabs over CDP (needs --profile-id)
     node automation-api-smoke-test.mjs --cookie-roundtrip    # export -> delete -> re-import cookies (needs --profile-id)
     node automation-api-smoke-test.mjs --close-at-end        # invokes /incogniton/close at the very end (will exit V5!)
 
@@ -702,6 +870,7 @@ OPTIONS
     --launch             Actually start + stop Chrome for the given --profile-id
     --puppeteer          Actually start a Puppeteer session and stop it (covers GET + POST)
     --selenium           Actually start a Selenium grid session and stop it (covers GET + POST; needs selenium-server.jar)
+    --control            Launch Chrome and exercise the browser-control endpoints (open/navigate/refresh/tabs) over CDP, then stop
     --cookie-roundtrip   Export -> delete -> re-import cookies on the given --profile-id (restored at the end)
     --close-at-end       Invoke /incogniton/close at the very end (will terminate V5!)
     -h, --help           Show this help
@@ -717,6 +886,7 @@ function parseArgs(argv) {
     launch: false,
     puppeteer: false,
     selenium: false,
+    control: false,
     cookieRoundtrip: false,
     closeAtEnd: false,
   };
@@ -729,6 +899,7 @@ function parseArgs(argv) {
       case '--launch': args.launch = true; break;
       case '--puppeteer': args.puppeteer = true; break;
       case '--selenium': args.selenium = true; break;
+      case '--control': args.control = true; break;
       case '--cookie-roundtrip': args.cookieRoundtrip = true; break;
       case '--close-at-end': args.closeAtEnd = true; break;
       case '-h':
@@ -783,6 +954,12 @@ async function main() {
     await testSelenium(suite, args.baseUrl, args.profileId);
   } else {
     skip(suite, 'live selenium launch', 'use --selenium (with --profile-id) to run');
+  }
+
+  if (args.control) {
+    await testControl(suite, args.baseUrl, args.profileId);
+  } else {
+    skip(suite, 'live browser control', 'use --control (with --profile-id) to run');
   }
 
   if (args.cookieRoundtrip) {

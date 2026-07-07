@@ -22,6 +22,7 @@
     "build": "npm run clean && tsc",
     "start": "node --no-warnings=ExperimentalWarning ./dist/index.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles",
+    "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest --testPathPattern=unit.test.ts",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:api": "npm run build && node tools/client-api-test.mjs",
@@ -29,7 +30,7 @@
     "lint": "eslint src --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepare": "npm run build",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "npm run test:unit"
   },
   "keywords": [
     "incogniton",

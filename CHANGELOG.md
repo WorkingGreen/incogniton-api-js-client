@@ -14,6 +14,7 @@
 
 ### Tests
 
+- Added `npm run test:unit` (the deterministic unit suite only) and pointed `prepublishOnly` at it, so `npm publish` no longer runs the live Playwright integration test — which needs a running app and opens real browsers. `npm test` still runs the full suite for deliberate local runs.
 - Unit test (`incogniton.client.unit.test.ts`) now asserts the route, verb, and body for **every** client method (system, profile CRUD + lifecycle, cookie, control, and all automation launch variants) — runs without a live app.
 - New destructive end-to-end test that drives the built client itself (`tools/client-api-test.mjs`, `npm run test:api`): creates a profile and exercises the full SDK surface (read, update, switch-proxy, clone ×2, cookies, dry-launch) against a live app, then deletes everything it created. Chrome-spawning calls (launch/puppeteer/selenium/control/cookie-robot) are opt-in flags.
 - Live smoke test (`tools/automation-api-smoke-test.mjs`, `npm run test:smoke`) now covers the `control` routes: safe error-path checks for all six, plus an opt-in `--control` flag that launches Chrome and drives open/navigate/refresh/list-activate-close-tabs over CDP. On a build that predates the control routes the checks skip cleanly (detected via the router's "Not found" envelope) instead of failing.

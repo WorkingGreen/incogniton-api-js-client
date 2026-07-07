@@ -15,7 +15,8 @@
 ### Tests
 
 - Unit test (`incogniton.client.unit.test.ts`) now asserts the route, verb, and body for **every** client method (system, profile CRUD + lifecycle, cookie, control, and all automation launch variants) — runs without a live app.
-- Live smoke test (`tools/automation-api-smoke-test.mjs`) now covers the `control` routes: safe error-path checks for all six, plus an opt-in `--control` flag that launches Chrome and drives open/navigate/refresh/list-activate-close-tabs over CDP. On a build that predates the control routes the checks skip cleanly (detected via the router's "Not found" envelope) instead of failing.
+- New destructive end-to-end test that drives the built client itself (`tools/client-api-test.mjs`, `npm run test:api`): creates a profile and exercises the full SDK surface (read, update, switch-proxy, clone ×2, cookies, dry-launch) against a live app, then deletes everything it created. Chrome-spawning calls (launch/puppeteer/selenium/control/cookie-robot) are opt-in flags.
+- Live smoke test (`tools/automation-api-smoke-test.mjs`, `npm run test:smoke`) now covers the `control` routes: safe error-path checks for all six, plus an opt-in `--control` flag that launches Chrome and drives open/navigate/refresh/list-activate-close-tabs over CDP. On a build that predates the control routes the checks skip cleanly (detected via the router's "Not found" envelope) instead of failing.
 
 ### Fixed
 

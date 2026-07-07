@@ -24,6 +24,8 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test:api": "npm run build && node tools/client-api-test.mjs",
+    "test:smoke": "node tools/automation-api-smoke-test.mjs",
     "lint": "eslint src --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepare": "npm run build",

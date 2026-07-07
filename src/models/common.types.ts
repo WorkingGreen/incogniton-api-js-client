@@ -1,6 +1,27 @@
 /** Unique identifier for a browser profile */
 export type ProfileId = string;
 
+/**
+ * Profile run status as returned by `GET /profile/status/{id}`.
+ *
+ * @note The server returns the capitalized display name (e.g. `"Ready"`),
+ * reusing the `status` envelope key for the value — it is NOT the `'ok'`/`'error'`
+ * envelope flag for this endpoint.
+ */
+export type ProfileStatus =
+  | 'Ready'
+  | 'Launched'
+  | 'Launching'
+  | 'Launched on different device'
+  | 'Stopping'
+  | 'Error'
+  | 'Syncing'
+  | 'Checking proxy'
+  | 'Uploading'
+  | 'Adding'
+  | 'Disabled'
+  | 'Opened';
+
 /** Interface containing timestamp fields for creation and update times */
 export interface Timestamps {
   /** ISO 8601 timestamp when the resource was created */
@@ -203,20 +224,45 @@ export interface UpdateBrowserProfileRequest {
 }
 
 /**
- * Response type representing cookie data retrieved from the browser profile
+ * A single open browser tab, as returned by `GET /profile/tabs/{id}`.
  */
-export interface GetCookieResponse extends BaseResponse {
-  data: {
-    id: string;
-    name: string;
-    value: string;
-    domain: string;
-    path: string;
-    secure: boolean;
-    httpOnly: boolean;
-    sameSite: string;
-    expires: number;
-  };
+export interface BrowserTab {
+  /** CDP target id of the tab — pass to activate/close tab calls. */
+  targetId: string;
+  /** Current URL of the tab. */
+  url: string;
+  /** Current document title of the tab. */
+  title: string;
+}
+
+/** A single cookie as returned by the Incogniton API. */
+export interface Cookie {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  secure: boolean;
+  httpOnly: boolean;
+  sameSite: string;
+  /** Whether the cookie is a session cookie. */
+  session?: boolean;
+  /** Whether the cookie is host-only. */
+  hostOnly?: boolean;
+  /** Unix expiry timestamp (absent for session cookies). */
+  expirationDate?: number;
+}
+
+/**
+ * Response type representing cookie data retrieved from the browser profile.
+ *
+ * @note The cookie array comes back under the key `'CookieData '` — WITH a
+ * trailing space. This is a V4 wire-format quirk the server preserves; the key
+ * is intentionally not normalized.
+ */
+export interface GetCookieResponse {
+  'CookieData ': Cookie[];
+  message: string;
+  status: 'ok' | 'error';
 }
 
 /**

@@ -1,5 +1,65 @@
 # Changelog
 
+## [1.2.0] - 2026-06-30
+
+### Added
+
+- `client.control` — live browser-control operations for an already-running profile, matching the V5 automation API's `control` endpoints:
+  - `control.openUrl(id, url)` — open a URL (reuses a free blank tab, else opens a new one).
+  - `control.navigate(id, url)` — navigate the foreground tab in place.
+  - `control.refresh(id)` — refresh the foreground tab.
+  - `control.tabs(id)` — list open tabs (`{ tabs: BrowserTab[] }`, each with `targetId` / `url` / `title`).
+  - `control.activateTab(id, targetId)` / `control.closeTab(id, targetId)` — bring a tab to the foreground / close it.
+- Exported the new `BrowserTab` type.
+
+### Tests
+
+- Added `npm run test:unit` (the deterministic unit suite only) and pointed `prepublishOnly` at it, so `npm publish` no longer runs the live Playwright integration test — which needs a running app and opens real browsers. `npm test` still runs the full suite for deliberate local runs.
+- Unit test (`incogniton.client.unit.test.ts`) now asserts the route, verb, and body for **every** client method (system, profile CRUD + lifecycle, cookie, control, and all automation launch variants) — runs without a live app.
+- New destructive end-to-end test that drives the built client itself (`tools/client-api-test.mjs`, `npm run test:api`): creates a profile and exercises the full SDK surface (read, update, switch-proxy, clone ×2, cookies, dry-launch) against a live app, then deletes everything it created. Chrome-spawning calls (launch/puppeteer/selenium/control/cookie-robot) are opt-in flags.
+- Live smoke test (`tools/automation-api-smoke-test.mjs`, `npm run test:smoke`) now covers the `control` routes: safe error-path checks for all six, plus an opt-in `--control` flag that launches Chrome and drives open/navigate/refresh/list-activate-close-tabs over CDP. On a build that predates the control routes the checks skip cleanly (detected via the router's "Not found" envelope) instead of failing.
+
+### Fixed
+
+- `client.profile.list()` now targets `GET /profile/all/` (the trailing slash is part of the registered V5 route) and returns the profile array under `profileData` — the real wire key. The previous `/profile/all` path and `profiles` key did not match the server (`res.profiles` was always `undefined` at runtime — same bug class as the earlier `CookieData` fix).
+
+### Migration notes
+
+- JavaScript scripts run unchanged.
+- TypeScript-only: `profile.list()` now returns `{ profileData: BrowserProfile[]; status }` instead of `{ profiles: ... }`. Read `res.profileData` (this is what the server has always actually sent).
+
+## [1.1.0] - 2026-06-17
+
+### Added
+
+- `client.system` operations: `alive()` (health probe) and `close()` (shut down the Incogniton app).
+- Profile cloning: `client.profile.clone(id, options?)` — called with no options it performs an all-defaults clone (same name/group, every clone option on); pass a `CloneProfileOptions` to customize.
+- Dry-launch (build a launch without opening a browser): `client.profile.dryLaunch(id)`, `dryLaunchForceLocal`, and `dryLaunchForceCloud`.
+- Automation force-sync launch variants: `launchPuppeteerForceLocal` / `launchPuppeteerForceCloud` and `launchSeleniumForceLocal` / `launchSeleniumForceCloud`.
+- `client.automation.launchSeleniumCustomBody(id, options)` — Selenium custom-args launch with the profile id in the request body.
+- `client.automation.launchCookieRobot(id)` — run the cookie-collection robot.
+- The constructor now accepts an options object: `new IncognitonClient({ baseUrl, timeout, port })`. The optional `port` targets a non-default app port. The legacy positional `(baseUrl, timeout)` signature still works.
+
+### Changed
+
+- `system.alive()` normalizes the server response (JSON-quoted `"OK"` or bare `OK`) to a plain `'OK'` across app versions.
+- Browser launches (`IncognitonBrowser.startPuppeteer` / `startPlaywright`) now poll the CDP endpoint and connect as soon as it's ready, instead of waiting a fixed `launchTimeout` delay — launches return in ~1–2 s instead of always waiting the full timeout.
+- Launching a browser no longer clears the host process's other `SIGINT` handlers.
+- Updated dependencies: `axios` → ^1.18.0, `qs` → ^6.15.2. Bumped the `playwright` / `playwright-core` peer range to ^1.61.0 (`puppeteer-core` peer unchanged at ^22).
+
+### Fixed
+
+- Corrected `GetCookieResponse`: the cookie array is exposed under the key `'CookieData '` (with the trailing space the server actually sends) — reading `res.CookieData` was always `undefined` at runtime.
+- `IncognitonBrowser` passed `launchTimeout` (ms) where the request layer expected seconds, inflating the HTTP timeout 1000×.
+- Puppeteer custom-launch routes now use the trailing-slash path the server registers (`/automation/launch/puppeteer/`).
+- `ProfileStatus` now matches the server's capitalized display names (e.g. `"Ready"`); it was previously lowercase and never matched `getStatus()`.
+
+### Migration notes (no runtime breaks)
+
+- Existing JavaScript scripts run unchanged. The constructor, all existing methods, and their runtime behavior are backward-compatible.
+- TypeScript-only: the exported `BrowserProfile`, `CreateBrowserProfileRequest`, `UpdateBrowserProfileRequest`, `GetCookieResponse`, and `AddCookieRequest` types now match the real API shapes (they previously did not). Code that already matched runtime keeps compiling; code that relied on the old (incorrect) shapes may surface a compile error pointing at a latent bug. The redundant `models/automation.types` and `models/cookies.types` modules were removed (they were never reachable via the package's `exports` map).
+- Playwright users may need to bump `playwright`/`playwright-core` to ^1.61 to satisfy the peer range.
+
 ## [1.0.17] - 2025-10-31
 
 ### Changed

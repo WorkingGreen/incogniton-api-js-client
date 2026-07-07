@@ -1,16 +1,56 @@
 import { defaults } from '../config/defaults.js';
-import { ProfileStatus } from '../models/browser-profile.types.js';
 import {
   BrowserProfile,
+  BrowserTab,
   CreateBrowserProfileRequest,
   UpdateBrowserProfileRequest,
   GetCookieResponse,
   AddCookieRequest,
   ProfileId,
+  ProfileStatus,
   Proxy,
 } from '../models/common.types.js';
 import { HttpAgentBuilder } from '../utils/http/agent.js';
 import { InitHttpAgent } from '../utils/http/provider.js';
+
+/**
+ * Options accepted by the {@link IncognitonClient} constructor.
+ */
+export interface IncognitonClientOptions {
+  /**
+   * Base URL for the Incogniton API. Defaults to `http://localhost:35000`.
+   * Can be overridden by the `INCOGNITON_API_URL` environment variable.
+   */
+  baseUrl?: string;
+  /** Requests timeout in seconds. Defaults to 60 secs. */
+  timeout?: number;
+  /**
+   * Port of the local Incogniton app. When set, `baseUrl` becomes
+   * `http://localhost:<port>`. The API port is configurable in the
+   * Incogniton app's Debug settings tab.
+   */
+  port?: number;
+}
+
+/**
+ * Settings for cloning a profile via {@link IncognitonClient.profile.clone}.
+ * Every field is optional; omitted clone flags fall back to the server
+ * default (which is `true` for each).
+ */
+export interface CloneProfileOptions {
+  /** Name for the clone. Defaults to the source profile's name. */
+  profileName?: string;
+  /** Group for the clone. Defaults to the source profile's group. */
+  targetGroup?: string;
+  /** Copy cookies (default true). */
+  cloneCookies?: boolean;
+  /** Copy advanced/other settings (default true). */
+  cloneAdvancedOtherSettings?: boolean;
+  /** Copy the user agent (default true). */
+  cloneUseragent?: boolean;
+  /** Copy other browser data (default true). */
+  cloneOtherBrowserData?: boolean;
+}
 
 export class IncognitonClient {
   private readonly httpAgent: HttpAgentBuilder;
@@ -18,23 +58,76 @@ export class IncognitonClient {
 
   /**
    * Creates a new Incogniton API client instance
-   * @param baseUrl `optional` Base URL for the Incogniton API:
+   * @param baseUrlOrOptions `optional` Either the base URL string for the
+   * Incogniton API, or an {@link IncognitonClientOptions} object:
    * - If not provided, defaults to http://localhost:35000
    * - Can be overridden by `INCOGNITON_API_URL` environment variable
-  * @param timeout `optional` Sets requests timeout in seconds. Defaults to 60 secs.
-   * 
+   * @param timeout `optional` Sets requests timeout in seconds. Defaults to 60 secs.
+   * Ignored when an options object is passed (use `options.timeout` instead).
+   *
    * @example
    * ```typescript
    * const client = new IncognitonClient();
+   *
+   * // Target a non-default app port (configurable in the Debug settings tab)
+   * const client = new IncognitonClient({ port: 40000 });
    * ```
-   * 
-   * @note For brows per automation with Puppeteer integration, use the `{ IncognitonBrowser }` module
+   *
+   * @note For browser automation with Puppeteer integration, use the `{ IncognitonBrowser }` module
    * which provides a higher-level interface for managing browser instances.
    */
-  constructor(baseUrl?: string, timeout?: number) {
+  constructor(baseUrlOrOptions?: string | IncognitonClientOptions, timeout?: number) {
+    let baseUrl: string | undefined;
+    let resolvedTimeout: number | undefined;
+    let port: number | undefined;
+
+    if (typeof baseUrlOrOptions === 'object' && baseUrlOrOptions !== null) {
+      baseUrl = baseUrlOrOptions.baseUrl;
+      resolvedTimeout = baseUrlOrOptions.timeout;
+      port = baseUrlOrOptions.port;
+    } else {
+      baseUrl = baseUrlOrOptions;
+      resolvedTimeout = timeout;
+    }
+
+    if (port !== undefined) {
+      baseUrl = `http://localhost:${port}`;
+    }
+
     this.httpAgent = InitHttpAgent('incogniton-client', baseUrl || defaults.baseUrl);
-    this.timeout = timeout;
+    this.timeout = resolvedTimeout;
   }
+
+  /**
+   * System-level operations
+   */
+  system = {
+    /**
+     * Health probe for the Incogniton app.
+     * @route GET /alive
+     * @returns Promise<string> - `'OK'` when the desktop app is reachable.
+     *
+     * @note `/alive` is the API's only non-JSON endpoint. Across app versions
+     * it serves either the JSON-quoted string `"OK"` or a bare `OK`; both
+     * (and any surrounding whitespace) are normalized to a plain `'OK'`.
+     */
+    alive: async (): Promise<string> => {
+      const raw: string = await this.httpAgent.get('/alive').asText().do(this.timeout);
+      return (raw ?? '').toString().trim().replace(/^"|"$/g, '');
+    },
+
+    /**
+     * Shuts down the Incogniton application.
+     * @route GET /incogniton/close
+     * @returns Promise<{ message: string; status: 'ok' }> - Shutdown confirmation
+     */
+    close: async (): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get('/incogniton/close')
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+  };
 
   /**
    * Profile-related operations
@@ -42,11 +135,13 @@ export class IncognitonClient {
   profile = {
     /**
      * Retrieves a list of all browser profiles from the Incogniton server.
-     * @route GET /profile/all
-     * @returns Promise<{ profiles: BrowserProfile[]; status: 'ok' }> - List of browser profiles
+     * @route GET /profile/all/
+     * @returns Promise<{ profileData: BrowserProfile[]; status: 'ok' }> - List of
+     *   browser profiles, under the key `profileData` (the trailing slash on the
+     *   path is part of the registered V5 route).
      */
-    list: async (): Promise<{ profiles: BrowserProfile[]; status: 'ok' }> => {
-  return this.httpAgent.get('/profile/all').set('Content-Type', 'application/json').do(this.timeout);
+    list: async (): Promise<{ profileData: BrowserProfile[]; status: 'ok' }> => {
+  return this.httpAgent.get('/profile/all/').set('Content-Type', 'application/json').do(this.timeout);
     },
 
     /**
@@ -215,6 +310,90 @@ export class IncognitonClient {
         .set('Content-Type', 'application/json')
         .do(this.timeout);
     },
+
+    /**
+     * Clones a profile.
+     *
+     * Called with no options it performs an all-defaults clone (same name and
+     * group as the source, every clone flag on) — the server applies the
+     * defaults for any field left out. Pass a {@link CloneProfileOptions} to
+     * override the name, group, or any individual clone flag.
+     *
+     * @route POST /profile/clone
+     * @param {ProfileId} id - Browser id of the source profile
+     * @param {CloneProfileOptions} [options] - Optional clone settings. Omitted
+     *   clone flags fall back to the server default (`true` for each).
+     * @returns Promise<{ profile_browser_id: string; status: 'ok' }> - The new clone's id
+     *
+     * @example
+     * ```typescript
+     * // All-defaults clone (same name/group, all data copied)
+     * await client.profile.clone('PROFILE_ID');
+     *
+     * // Custom clone
+     * await client.profile.clone('PROFILE_ID', { profileName: 'Copy', cloneCookies: false });
+     * ```
+     */
+    clone: async (
+      id: ProfileId,
+      options: CloneProfileOptions = {}
+    ): Promise<{ profile_browser_id: string; status: 'ok' }> => {
+      const body: Record<string, string | boolean> = { profile_browser_id: id };
+      if (options.profileName !== undefined) body.profile_name = options.profileName;
+      if (options.targetGroup !== undefined) body.target_group = options.targetGroup;
+      if (options.cloneCookies !== undefined) body.clone_cookies = options.cloneCookies;
+      if (options.cloneAdvancedOtherSettings !== undefined)
+        body.clone_advanced_other_settings = options.cloneAdvancedOtherSettings;
+      if (options.cloneUseragent !== undefined) body.clone_useragent = options.cloneUseragent;
+      if (options.cloneOtherBrowserData !== undefined)
+        body.clone_other_browser_data = options.cloneOtherBrowserData;
+
+      return this.httpAgent
+        .post('/profile/clone')
+        .set('Content-Type', 'application/json')
+        .setBody(body)
+        .do(this.timeout);
+    },
+
+    /**
+     * Prepares a launch without starting the browser. Runs the prep stages and
+     * returns the built launch command as `arg`.
+     * @route GET /profile/dryLaunch/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the profile
+     * @returns Promise<{ arg: string; status: 'ok' }> - The full launch command
+     */
+    dryLaunch: async (id: ProfileId): Promise<{ arg: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/profile/dryLaunch/${id}`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+
+    /**
+     * Dry-launches a profile, forcing the LOCAL copy when out of sync.
+     * @route GET /profile/dryLaunch/{profile_id}/force/local
+     * @param {ProfileId} id - Unique identifier of the profile
+     * @returns Promise<{ arg: string; status: 'ok' }> - The full launch command
+     */
+    dryLaunchForceLocal: async (id: ProfileId): Promise<{ arg: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/profile/dryLaunch/${id}/force/local`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+
+    /**
+     * Dry-launches a profile, forcing the CLOUD copy when out of sync.
+     * @route GET /profile/dryLaunch/{profile_id}/force/cloud
+     * @param {ProfileId} id - Unique identifier of the profile
+     * @returns Promise<{ arg: string; status: 'ok' }> - The full launch command
+     */
+    dryLaunchForceCloud: async (id: ProfileId): Promise<{ arg: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/profile/dryLaunch/${id}/force/cloud`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
   };
 
   /**
@@ -225,11 +404,10 @@ export class IncognitonClient {
      * Retrieves all cookies associated with a browser profile.
      * @route GET /profile/cookie/{profile_id}
      * @param {ProfileId} profileId - Unique identifier of the profile
-     * @returns Promise<{ CookieData: GetCookieResponse[]; message: string; status: 'ok' }> - List of cookies
+     * @returns Promise<GetCookieResponse> - List of cookies. Note the array is
+     *   under the key `'CookieData '` (trailing space) — a preserved V4 wire quirk.
      */
-    get: async (
-      profileId: ProfileId
-    ): Promise<{ CookieData: GetCookieResponse[]; message: string; status: 'ok' }> => {
+    get: async (profileId: ProfileId): Promise<GetCookieResponse> => {
       return this.httpAgent
         .get(`/profile/cookie/${profileId}`)
         .set('Content-Type', 'application/json')
@@ -287,6 +465,111 @@ export class IncognitonClient {
   };
 
   /**
+   * Live browser-control operations. Each acts on an already-running profile
+   * (launch it first via {@link IncognitonClient.profile.launch}).
+   */
+  control = {
+    /**
+     * Opens a URL in a running profile's browser, reusing a blank/new tab when
+     * one is free, otherwise opening a new tab.
+     * @route POST /profile/openUrl/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @param {string} url - The URL (or bare host, opened as https://) to open
+     * @returns Promise<{ message: string; status: 'ok' }> - Confirmation
+     */
+    openUrl: async (
+      id: ProfileId,
+      url: string
+    ): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .post(`/profile/openUrl/${id}`)
+        .set('Content-Type', 'application/json')
+        .setBody({ url })
+        .do(this.timeout);
+    },
+
+    /**
+     * Navigates the foreground tab to a URL in place (does not open a new tab).
+     * @route POST /profile/navigate/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @param {string} url - The URL (or bare host) to navigate to
+     * @returns Promise<{ message: string; status: 'ok' }> - Confirmation
+     */
+    navigate: async (
+      id: ProfileId,
+      url: string
+    ): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .post(`/profile/navigate/${id}`)
+        .set('Content-Type', 'application/json')
+        .setBody({ url })
+        .do(this.timeout);
+    },
+
+    /**
+     * Refreshes the foreground tab of a running profile's browser.
+     * @route GET /profile/refresh/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @returns Promise<{ message: string; status: 'ok' }> - Confirmation
+     */
+    refresh: async (id: ProfileId): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/profile/refresh/${id}`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+
+    /**
+     * Lists the open tabs of a running profile's browser.
+     * @route GET /profile/tabs/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @returns Promise<{ tabs: BrowserTab[]; status: 'ok' }> - The open tabs
+     */
+    tabs: async (id: ProfileId): Promise<{ tabs: BrowserTab[]; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/profile/tabs/${id}`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+
+    /**
+     * Brings a tab to the foreground.
+     * @route POST /profile/activateTab/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @param {string} targetId - The tab's targetId (from {@link IncognitonClient.control.tabs})
+     * @returns Promise<{ message: string; status: 'ok' }> - Confirmation
+     */
+    activateTab: async (
+      id: ProfileId,
+      targetId: string
+    ): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .post(`/profile/activateTab/${id}`)
+        .set('Content-Type', 'application/json')
+        .setBody({ targetId })
+        .do(this.timeout);
+    },
+
+    /**
+     * Closes a tab.
+     * @route POST /profile/closeTab/{profile_id}
+     * @param {ProfileId} id - Unique identifier of the running profile
+     * @param {string} targetId - The tab's targetId (from {@link IncognitonClient.control.tabs})
+     * @returns Promise<{ message: string; status: 'ok' }> - Confirmation
+     */
+    closeTab: async (
+      id: ProfileId,
+      targetId: string
+    ): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .post(`/profile/closeTab/${id}`)
+        .set('Content-Type', 'application/json')
+        .setBody({ targetId })
+        .do(this.timeout);
+    },
+  };
+
+  /**
    * Automation-related operations
    */
   automation = {
@@ -307,7 +590,7 @@ export class IncognitonClient {
 
     /**
      * Launches a browser profile with Puppeteer automation using custom arguments.
-     * @route POST /automation/launch/puppeteer
+     * @route POST /automation/launch/puppeteer/
      * @param {ProfileId} profileId - Unique identifier of the profile
      * @param {string} customArgs - Custom command-line arguments for launching the browser
      * @returns Promise<{ puppeteerUrl: string; status: 'ok' }> - Puppeteer connection URL
@@ -317,7 +600,7 @@ export class IncognitonClient {
       customArgs: string
     ): Promise<{ puppeteerUrl: string; status: 'ok' }> => {
       return this.httpAgent
-        .post('/automation/launch/puppeteer')
+        .post('/automation/launch/puppeteer/')
         .set('Content-Type', 'application/json')
         .setBody({ profileID: profileId, customArgs })
         .do(this.timeout);
@@ -351,6 +634,110 @@ export class IncognitonClient {
         .post(`/automation/launch/python/${profileId}/`)
         .set('Content-Type', 'application/json')
         .setBody({ customArgs })
+        .do(this.timeout);
+    },
+
+    /**
+     * Launches a profile for Puppeteer, forcing the LOCAL copy when out of sync.
+     * @route GET /automation/launch/puppeteer/{profile_id}/local
+     * @param {ProfileId} profileId - Unique identifier of the profile
+     * @returns Promise<{ puppeteerUrl: string; status: 'ok' }> - Puppeteer connection URL
+     */
+    launchPuppeteerForceLocal: async (
+      profileId: ProfileId
+    ): Promise<{ puppeteerUrl: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/automation/launch/puppeteer/${profileId}/local`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+
+    /**
+     * Launches a profile for Puppeteer, forcing the CLOUD copy when out of sync.
+     * @route GET /automation/launch/puppeteer/{profile_id}/cloud
+     * @param {ProfileId} profileId - Unique identifier of the profile
+     * @returns Promise<{ puppeteerUrl: string; status: 'ok' }> - Puppeteer connection URL
+     */
+    launchPuppeteerForceCloud: async (
+      profileId: ProfileId
+    ): Promise<{ puppeteerUrl: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/automation/launch/puppeteer/${profileId}/cloud`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+
+    /**
+     * Launches a profile on the Selenium grid, forcing the LOCAL copy when out of sync.
+     * @route GET /automation/launch/python/{profile_id}/local
+     * @param {ProfileId} profileId - Unique identifier of the profile
+     * @returns Promise<{ url: string; status: 'ok' }> - Grid URL
+     */
+    launchSeleniumForceLocal: async (
+      profileId: ProfileId
+    ): Promise<{ url: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/automation/launch/python/${profileId}/local`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+
+    /**
+     * Launches a profile on the Selenium grid, forcing the CLOUD copy when out of sync.
+     * @route GET /automation/launch/python/{profile_id}/cloud
+     * @param {ProfileId} profileId - Unique identifier of the profile
+     * @returns Promise<{ url: string; status: 'ok' }> - Grid URL
+     */
+    launchSeleniumForceCloud: async (
+      profileId: ProfileId
+    ): Promise<{ url: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/automation/launch/python/${profileId}/cloud`)
+        .set('Content-Type', 'application/json')
+        .do(this.timeout);
+    },
+
+    /**
+     * Launches a profile on the Selenium grid with custom args, sending the
+     * profile id in the request body.
+     * @route POST /automation/launch/python/
+     * @param {ProfileId} profileId - Unique identifier of the profile
+     * @param {object} [options] - Optional launch settings
+     * @param {string} [options.customArgs] - Extra args passed to the launch
+     * @param {boolean} [options.forceLocal] - Force the local copy when out of sync
+     * @param {boolean} [options.forceCloud] - Force the cloud copy when out of sync
+     * @returns Promise<{ url: string; status: 'ok' }> - Grid URL
+     */
+    launchSeleniumCustomBody: async (
+      profileId: ProfileId,
+      options: { customArgs?: string; forceLocal?: boolean; forceCloud?: boolean } = {}
+    ): Promise<{ url: string; status: 'ok' }> => {
+      const body: Record<string, string | boolean> = { profileID: profileId };
+      if (options.customArgs !== undefined) body.customArgs = options.customArgs;
+      if (options.forceLocal) body.forceLocal = true;
+      if (options.forceCloud) body.forceCloud = true;
+
+      return this.httpAgent
+        .post('/automation/launch/python/')
+        .set('Content-Type', 'application/json')
+        .setBody(body)
+        .do(this.timeout);
+    },
+
+    /**
+     * Runs the cookie-collection robot on a profile. Forces the cloud copy and
+     * uses default settings (top-50 sites, 120s timeout, accept-cookies
+     * extension, random crawl order).
+     * @route GET /automation/cookieRobot/{profile_id}
+     * @param {ProfileId} profileId - Unique identifier of the profile
+     * @returns Promise<{ message: string; status: 'ok' }> - Launch confirmation
+     */
+    launchCookieRobot: async (
+      profileId: ProfileId
+    ): Promise<{ message: string; status: 'ok' }> => {
+      return this.httpAgent
+        .get(`/automation/cookieRobot/${profileId}`)
+        .set('Content-Type', 'application/json')
         .do(this.timeout);
     },
   };

@@ -4,6 +4,18 @@ Below is a summary of the most commonly used methods and operations available in
 
 ---
 
+## System Operations (`client.system`)
+
+```typescript
+await client.system.alive();
+// Health probe. Returns the string 'OK' when the desktop app is reachable.
+
+await client.system.close();
+// Shut down the Incogniton application.
+```
+
+---
+
 ## Profile Operations (`client.profile`)
 
 ```typescript
@@ -22,6 +34,11 @@ await client.profile.update(profileId, updateRequest);
 await client.profile.switchProxy(profileId, proxy);
 // Update a browser profile's proxy configuration.
 
+await client.profile.clone(profileId, options?);
+// Clone a profile. With no `options` it performs an all-defaults clone (same
+// name/group, every clone option on). Pass a `CloneProfileOptions`
+// (profileName, targetGroup, cloneCookies, …) to customize. Returns the new clone's id.
+
 await client.profile.launch(profileId);
 // Launch a browser profile.
 
@@ -30,6 +47,15 @@ await client.profile.launchForceLocal(profileId);
 
 await client.profile.launchForceCloud(profileId);
 // Force a browser profile to launch in cloud mode.
+
+await client.profile.dryLaunch(profileId);
+// Prepare a launch without opening a browser; returns the built launch command as `arg`.
+
+await client.profile.dryLaunchForceLocal(profileId);
+// Dry-launch, forcing the local copy when out of sync.
+
+await client.profile.dryLaunchForceCloud(profileId);
+// Dry-launch, forcing the cloud copy when out of sync.
 
 await client.profile.getStatus(profileId);
 // Get the current status of a browser profile.
@@ -42,6 +68,32 @@ await client.profile.forceStop(profileId);
 
 await client.profile.delete(profileId);
 // Delete a browser profile.
+```
+
+---
+
+## Live Browser Control (`client.control`)
+
+These act on an already-running profile — launch it first with `client.profile.launch(profileId)`.
+
+```typescript
+await client.control.openUrl(profileId, 'https://example.com');
+// Open a URL in a running profile (reuses a blank tab if free, else opens a new tab).
+
+await client.control.navigate(profileId, 'https://example.com');
+// Navigate the foreground tab to a URL in place (no new tab).
+
+await client.control.refresh(profileId);
+// Refresh the foreground tab.
+
+await client.control.tabs(profileId);
+// List the open tabs. Returns `{ tabs: BrowserTab[] }` (each tab has targetId, url, title).
+
+await client.control.activateTab(profileId, targetId);
+// Bring a tab to the foreground. `targetId` comes from `control.tabs()`.
+
+await client.control.closeTab(profileId, targetId);
+// Close a tab.
 ```
 
 ---
@@ -67,14 +119,33 @@ await client.cookie.delete(profileId);
 await client.automation.launchPuppeteer(profileId);
 // Launch a browser profile with Puppeteer automation.
 
+await client.automation.launchPuppeteerForceLocal(profileId);
+// Launch for Puppeteer, forcing the local copy when out of sync.
+
+await client.automation.launchPuppeteerForceCloud(profileId);
+// Launch for Puppeteer, forcing the cloud copy when out of sync.
+
 await client.automation.launchPuppeteerCustom(profileId, customArgs);
 // Launch a browser profile with Puppeteer automation using custom arguments.
 
 await client.automation.launchSelenium(profileId);
 // Launch a browser profile with Selenium automation.
 
+await client.automation.launchSeleniumForceLocal(profileId);
+// Launch on the Selenium grid, forcing the local copy when out of sync.
+
+await client.automation.launchSeleniumForceCloud(profileId);
+// Launch on the Selenium grid, forcing the cloud copy when out of sync.
+
 await client.automation.launchSeleniumCustom(profileId, customArgs);
-// Launch a browser profile with Selenium automation using custom arguments.
+// Launch with Selenium using custom arguments (profile id in the URL path).
+
+await client.automation.launchSeleniumCustomBody(profileId, options);
+// Launch on the Selenium grid with custom args, profile id in the request body.
+// `options` may set { customArgs, forceLocal, forceCloud }.
+
+await client.automation.launchCookieRobot(profileId);
+// Run the cookie-collection robot on a profile (top-50 sites, 120s timeout, cloud copy).
 ```
 
 ---

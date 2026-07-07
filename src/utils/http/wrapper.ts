@@ -139,6 +139,19 @@ export class RequestWrapper<T extends object> {
   }
 
   /**
+   * Return the raw response body as text instead of parsing it as JSON.
+   *
+   * Needed for the `/alive` health probe, which is the API's only non-JSON
+   * endpoint (it returns the bare string `OK`, not a JSON envelope). The
+   * per-request `transformResponse` overrides the agent's default JSON parser.
+   */
+  asText() {
+    this.request.responseType = 'text';
+    this.request.transformResponse = [data => data];
+    return this;
+  }
+
+  /**
    * Runs the API request and handles errors.
    * @param timeout timeout for request in seconds
    */

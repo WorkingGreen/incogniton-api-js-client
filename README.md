@@ -48,11 +48,19 @@ import { IncognitonClient } from 'incogniton';
 
 const client = new IncognitonClient();
 
+// Target a non-default app port (the API port is configurable in the Debug settings tab)
+const clientOnCustomPort = new IncognitonClient({ port: 40000 });
+
+// Check the desktop app is reachable
+const status = await client.system.alive(); // 'OK'
+
 // Create a new browser profile
 const profile = await client.profile.add({
   profileData: {
-    name: 'MY PROFILE',
-    // ...
+    general_profile_information: {
+      profile_name: 'MY PROFILE',
+      // ...
+    },
   },
 });
 
@@ -61,6 +69,16 @@ const profiles = await client.profile.list();
 
 // Get a specific profile
 const profileDetails = await client.profile.get('PROFILE_ID');
+
+// Clone a profile — no options means an all-defaults clone (same name/group, all data).
+// Pass options to customize: client.profile.clone('PROFILE_ID', { profileName: 'Copy' })
+const clone = await client.profile.clone('PROFILE_ID');
+
+// Control a running profile's browser (launch it first)
+await client.profile.launch('PROFILE_ID');
+await client.control.openUrl('PROFILE_ID', 'https://example.com');
+const { tabs } = await client.control.tabs('PROFILE_ID');
+await client.control.activateTab('PROFILE_ID', tabs[0].targetId);
 ```
 
 ### Browser Automation
@@ -95,8 +113,12 @@ await browser.close(playwrightInstance);
 
 ### API Client Configuration
 
-- `port`: Port number for the Incogniton instance (default: 35000)
-- `baseUrl`: Base URL for API requests (default: http://localhost:${port})
+Pass an options object to the constructor: `new IncognitonClient({ baseUrl, timeout, port })`.
+(The legacy positional form `new IncognitonClient(baseUrl, timeout)` still works.)
+
+- `port`: Port number for the Incogniton instance (default: 35000). When set, `baseUrl` becomes `http://localhost:${port}`.
+- `baseUrl`: Base URL for API requests (default: http://localhost:35000). Can be overridden by the `INCOGNITON_API_URL` environment variable.
+- `timeout`: Request timeout in seconds (default: 60).
 
 ### Browser Configuration
 

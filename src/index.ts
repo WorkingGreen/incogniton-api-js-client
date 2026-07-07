@@ -8,34 +8,35 @@ export default IncognitonClient;
 
 // Named Export for Client
 export { IncognitonClient } from './api/incogniton.client.js';
+export type { IncognitonClientOptions, CloneProfileOptions } from './api/incogniton.client.js';
 
-// Export Common Types
+// Export Common Types (single source of truth for the wire shapes)
 export type {
   ProfileId,
+  ProfileStatus,
   Timestamps,
   BaseResponse,
+  ApiResponse,
+  ApiError,
   GeneralProfileInformation,
   Proxy,
   Timezone,
   WebRTC,
   Navigator,
   Other,
-} from './models/common.types.js';
-
-// Export API Types
-export type {
-  ApiResponse,
-  ApiError,
+  BrowserProfile,
+  BrowserTab,
   CreateBrowserProfileRequest,
   UpdateBrowserProfileRequest,
+  Cookie,
   GetCookieResponse,
   AddCookieRequest,
   PuppeteerLaunchResponse,
   SeleniumLaunchResponse,
-} from './models/api.types.js';
+} from './models/common.types.js';
 
-// Export Browser Profile Types
-export type { BrowserProfile } from './models/browser-profile.types.js';
+// Export the browser-automation config type
+export type { BrowserConfig } from './models/api.types.js';
 
 // Export HTTP Utilities
 export { HttpAgent, HttpAgentBuilder, HttpMethod } from './utils/http/agent.js';

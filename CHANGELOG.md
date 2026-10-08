@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.2.0] - 2026-06-30
+## [1.2.0] - 2026-10-08
 
 ### Added
 
@@ -21,6 +21,7 @@
 
 ### Fixed
 
+- `HttpError`, `TimeoutError` and `NoAuthorizationTokenError` now set `error.name`, so connection failures and timeouts can be told apart by name instead of all surfacing as a generic `Error` (previously only `APIError` set it).
 - `client.profile.list()` now targets `GET /profile/all/` (the trailing slash is part of the registered V5 route) and returns the profile array under `profileData` — the real wire key. The previous `/profile/all` path and `profiles` key did not match the server (`res.profiles` was always `undefined` at runtime — same bug class as the earlier `CookieData` fix).
 
 ### Migration notes

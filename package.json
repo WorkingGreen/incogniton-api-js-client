@@ -18,13 +18,13 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "clean": "rm -rf dist",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean && tsc",
     "start": "node --no-warnings=ExperimentalWarning ./dist/index.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles",
-    "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest --testPathPattern=unit.test.ts",
-    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
-    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --detectOpenHandles",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=unit.test.ts",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:api": "npm run build && node tools/client-api-test.mjs",
     "test:smoke": "node tools/automation-api-smoke-test.mjs",
     "lint": "eslint src --fix",
